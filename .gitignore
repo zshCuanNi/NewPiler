@@ -1,2 +1,10 @@
+.vscode/
 build/
 old/
+test/
+
+*.eeyore
+*.tigger
+*.riscv
+*.log
+*.S
