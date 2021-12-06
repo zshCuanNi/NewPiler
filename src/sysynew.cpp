@@ -8,7 +8,7 @@ void CNode::set_child(CNodePtr child) { child_ = child; }
 
 CDeclList::CDeclList(bool is_const):is_const_(is_const) {}
 
-void CDeclList::add_decl(CVarDPtr var_decl) {fprintf(f_log, "%s::%s\n", typeid(*this).name(), __FUNCTION__);
+void CDeclList::add_decl(CVarDPtr var_decl) {
   decl_list_.push_back(var_decl);
 }
 
@@ -27,11 +27,11 @@ CFuncDef::CFuncDef(DataType ret_type,
                    string id,
                    CBlkPtr func_body,
                    CVarDPtrList params):
-ret_type_(ret_type), id_(id), func_body_(func_body), params_(move(params)) {fprintf(f_log, "%s::%s\n", typeid(*this).name(), __FUNCTION__);}
+ret_type_(ret_type), id_(id), func_body_(func_body), params_(move(params)) {}
 
 void CBlock::set_func_body() { is_func_body_ = true; }
 
-void CBlock::add_item(CNodePtr blk_item) {fprintf(f_log, "%s::%s\n", typeid(*this).name(), __FUNCTION__);
+void CBlock::add_item(CNodePtr blk_item) {
   item_list_.push_back(blk_item);
 }
 
@@ -63,8 +63,7 @@ CExpr::CExpr(ExprType expr_type,
              int val,
              OpType op_type,
              string sysy_id):
-expr_type_(expr_type), val_(val), op_type_(op_type), sysy_id_(sysy_id) 
-{/* ??? */}
+expr_type_(expr_type), val_(val), op_type_(op_type), sysy_id_(sysy_id) {}
 
 CLValExpr::CLValExpr(string lval_name,
                      CExprPtr first_dim_index):
@@ -77,7 +76,7 @@ CExpr(eARITH, 0, op_type), lhs_expr_(lhs_expr), rhs_expr_(rhs_expr) {}
 
 CCallExpr::CCallExpr(string func_name,
                      CExprPtrList params):
-CExpr(eCALL), func_name_(func_name), params_(move(params)) {fprintf(f_log, "%s::%s\n", typeid(*this).name(), __FUNCTION__);
+CExpr(eCALL), func_name_(func_name), params_(move(params)) {
   // tackle macro commands for time function
   if (func_name_ == "starttime" || func_name_ == "stoptime") {
     func_name_ = "_sysy_" + func_name_;

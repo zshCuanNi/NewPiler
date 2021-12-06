@@ -23,9 +23,9 @@ CSymbolTable::CSymbolTable() {
   for (const string func_name: getter_func)
     register_func(datINT, func_name);
   func_tab_["getarray"]->params_.push_back(
-      NEW(CEntryVarTable)("p0", vector<int>({0}), vector<int>(),
+      NEW(CEntryVarTable)("", vector<int>({0}), vector<int>(),
                           false, true, true, true, false)
-  ); /* can "p0" be set to "" ??? */
+  );
 
   const string putter_func[] = { "putint", "putch", "putarray" };
   for (const string func_name: putter_func) {
@@ -66,9 +66,8 @@ CEnVTabPtr CSymbolTable::register_var(string sysy_id,
   if (is_param) {
   // parameter of a function
     new_var->eeyore_id_ = "p" + to_string(cur_param_cnt_++);
-    /* whether this "if" necessary ??? */
-    if (blk_id_ != GLOBAL_BLOCK)
-      func_tab_[cur_func_]->params_.push_back(new_var);
+    assert(blk_id_ != GLOBAL_BLOCK);
+    func_tab_[cur_func_]->params_.push_back(new_var);
   } else if (is_temp)
   // temp variable, sysy_id has prefix "#t"
     new_var->eeyore_id_ = sysy_id.substr(1);

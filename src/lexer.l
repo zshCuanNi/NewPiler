@@ -49,7 +49,7 @@ hexadecimal         (0[xX][0-9a-fA-F]+)
 "continue"          { return tCONT; }
 "return"            { return tRET; }
 
-{identifier}        { 
+{identifier}        {
                       char* id = strdup(yytext);
                       yylval.id = id;
                       return tID;
@@ -58,11 +58,11 @@ hexadecimal         (0[xX][0-9a-fA-F]+)
                       yylval.decimal_const = strtol(yytext, NULL, 0);
                       return tLITERAL;
                     }
-{octal}             { 
+{octal}             {
                       yylval.decimal_const = strtol(yytext, NULL, 0);
                       return tLITERAL;
                     }
-{hexadecimal}       { 
+{hexadecimal}       {
                       yylval.decimal_const = strtol(yytext, NULL, 0);
                       return tLITERAL;
                     }

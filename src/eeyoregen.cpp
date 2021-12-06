@@ -259,14 +259,12 @@ void CBlock::code_gen() {
 }
 
 void CAssignStmt::code_gen() {
-  // ???
   rhs_expr_->const_fold();
   lhs_var_->const_fold();
   if (lhs_var_->expr_type_ == eARR) rhs_expr_->gen_temp();
 
   codes_.splice(codes_.end(), rhs_expr_->codes_);
   codes_.splice(codes_.end(), lhs_var_->codes_);
-  // ??? omit cast for lhs_var_ here
   codes_.push_back(format("\t%s = %s",
                           lhs_var_->eeyore_id_.c_str(),
                           rhs_expr_->eeyore_id_.c_str()));
@@ -279,7 +277,6 @@ void CBlockStmt::code_gen() {
 
 void CExprStmt::code_gen() {
   expr_->const_fold();
-  // can we switch const_fold() and eCALL judgement???
   if (expr_->expr_type_ != eCALL) return;
   // find this function in function table and get its ret_type
   CCallExpr* func_call = (CCallExpr*) expr_;
@@ -373,7 +370,8 @@ void CRetStmt::code_gen() {
 }
 
 void CExpr::const_fold() {
-  if (has_folded_) { /* printf("folded\n"); */ return; }
+  if (has_folded_) return;
+
   switch (expr_type_) {
     case eNUM:
       eeyore_id_ = to_string(val_); break;
@@ -388,6 +386,7 @@ void CExpr::const_fold() {
     }
     default: break;
   }
+
   has_folded_ = true;
 }
 
@@ -399,6 +398,7 @@ void CExpr::gen_temp() {
   // #t is prefix of sysy_id for temped expressions
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
+  // register this temp variable
   sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
@@ -406,7 +406,7 @@ void CExpr::gen_temp() {
 /* generate expr node for calculating offset from 'index' */
 static CExprPtr index_unfold(const CExprPtrList index,
                              const CEnVTabPtr arr_entry) {
-  if (index.empty()) return NEW(CExpr)(eNUM); /* if exists ??? */
+  if (index.empty()) return NEW(CExpr)(eNUM); /* doubt if exists ??? */
 
   CExprPtr ret_expr = index[0];
   for (int i = 1; i < (int)index.size(); ++i) {
@@ -426,7 +426,8 @@ static CExprPtr index_unfold(const CExprPtrList index,
 }
 
 void CLValExpr::const_fold() {
-  if (has_folded_) { /* printf("folded\n"); */ return; }
+  if (has_folded_) return;
+
   CEnVTabPtr entry = sym_tab->find_var(lval_name_);
   if (entry->is_arr_) {
   // set indexes for array
@@ -440,9 +441,8 @@ void CLValExpr::const_fold() {
   } else
     expr_type_ = eVAR;
 
-  /* omit a if-return struct ??? */
   switch (expr_type_) {
-    case eNUM: break;  /* if exists??? */
+    case eNUM: break;  /* doubt if exists ??? */
     case eVAR:
       if (entry->is_const_) {
         expr_type_ = eNUM;
@@ -488,19 +488,18 @@ void CLValExpr::const_fold() {
       index_expr_->const_fold();
       codes_.splice(codes_.end(), index_expr_->codes_);
       eeyore_id_ = index_expr_->eeyore_id_;
-      /* omit sysy_id_ assignment ??? */
       break;
     }
   }
+
   has_folded_ = true;
 }
 
 void CArithExpr::const_fold() {
-  if (has_folded_) { /* printf("folded\n"); */ return; }
-  /* omit a if-return struct ??? */
+  if (has_folded_) return;
+
   if (rhs_expr_) {
   // binary op
-    /* add according to my understanding ??? */
     lhs_expr_->const_fold(); lhs_expr_->gen_temp();
     rhs_expr_->const_fold(); rhs_expr_->gen_temp();
     if (lhs_expr_->expr_type_ == eNUM && rhs_expr_->expr_type_ == eNUM)
@@ -550,7 +549,6 @@ void CArithExpr::const_fold() {
     }
   } else {
   // unuary op
-    /* add according to my understanding ??? */
     lhs_expr_->const_fold(); lhs_expr_->gen_temp();
     if (lhs_expr_->expr_type_ == eNUM) {
     // get constant result after constant lhs and rhs expr
@@ -574,13 +572,13 @@ void CArithExpr::const_fold() {
       codes_.splice(codes_.end(), lhs_expr_->codes_);
     }
   }
-  /* omit sysy_id_ assignment ??? */
+
   has_folded_ = true;
 }
 
 void CCallExpr::const_fold() {
-  if (has_folded_) { /* printf("folded\n"); */ return; }
-  /* omit a if-return struct ??? */
+  if (has_folded_) return;
+
   // prepare parameters
   for (CExprPtr param: params_) {
     param->const_fold();
@@ -592,7 +590,7 @@ void CCallExpr::const_fold() {
   for (CExprPtr param: params_)
     codes_.push_back(format("\tparam %s", param->eeyore_id_.c_str()));
   eeyore_id_ = format("call f_%s", func_name_.c_str());
-  /* omit sysy_id_ assignment ??? */
+
   has_folded_ = true;
 }
 
@@ -602,37 +600,27 @@ void CCallExpr::gen_temp() {
   // #t is prefix of sysy_id for temped expressions
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
-  /* BIG DEAL ??? */
-  // codes_.push_back(format("\t%s = call f_%s",
-  //                         eeyore_id_.c_str(),
-  //                         func_name_.c_str()));
+  // register this temp variable
   sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
 
 void CCondExpr::traverse() {
   if (rhs_expr_ == nullptr) {
-  // unary op or just a lval: if (y>4) | if (x)
-  /* maybe work but doubt ??? */
+  // unary op or just a lval: if (y>4) | if (x) ...
     lhs_expr_->const_fold();
     lhs_expr_->gen_temp();
     codes_.splice(codes_.end(), lhs_expr_->codes_);
 
     // labels have been set before calling travverse()
-    // if-else struct can be rewritten ???
-    if (true_label_ != fall_label)
-      if (false_label_ == fall_label)
-        codes_.push_back(format("\tif %s != 0 goto l%d",
-                                lhs_expr_->eeyore_id_.c_str(),
-                                true_label_));
-      else
-        codes_.push_back(format("\tif %s == 0 goto l%d",
-                                lhs_expr_->eeyore_id_.c_str(),
-                                false_label_));
-    else if (false_label_ != fall_label)
+    if (false_label_ != fall_label)
       codes_.push_back(format("\tif %s == 0 goto l%d",
-                                lhs_expr_->eeyore_id_.c_str(),
-                                false_label_));
+                              lhs_expr_->eeyore_id_.c_str(),
+                              false_label_));
+    else if (true_label_ != fall_label)
+      codes_.push_back(format("\tif %s != 0 goto l%d",
+                              lhs_expr_->eeyore_id_.c_str(),
+                              true_label_));
   } else {
   // binary op, traverse both side of expressions
     CCondPtr lhs_cond = (CCondPtr) lhs_expr_;
