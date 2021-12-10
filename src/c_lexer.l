@@ -1,8 +1,8 @@
 %option noyywrap
 %{
 #include <cstdlib>
-#include "sysyast.hpp"
-#include "parser.tab.hpp"
+#include "c_ast.hpp"
+#include "c_parser.tab.hpp"
 
 int lineno = 1;
 

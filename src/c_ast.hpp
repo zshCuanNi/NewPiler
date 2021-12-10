@@ -2,7 +2,7 @@
 #define C_AST_H
 
 #include <list>
-#include "sysysymtab.hpp"
+#include "c_symtab.hpp"
 
 #define D_CAST(x) dynamic_cast<x>
 
@@ -46,20 +46,20 @@ using CBlkPtr = CBlock*;
 using CExprPtr = CExpr*;
 using CStmtPtr = CStmt*;
 using CCondPtr = CCondExpr*;
-using CNodePtrList = vector<CNodePtr>;
-using CVarDPtrList = vector<CVarDPtr>;
-using CExprPtrList = vector<CExprPtr>;
-using CodeList = list<string>;
+typedef vector<CNodePtr> CNodePtrList;
+typedef vector<CVarDPtr> CVarDPtrList;
+typedef vector<CExprPtr> CExprPtrList;
+typedef list<string> CodeList;
 
 class CNode {
 public:
-  CNodePtr next_=nullptr;
-  CNodePtr child_=nullptr;
-  bool is_ret_stmt_=false;
+  CNodePtr next_ = nullptr;
+  CNodePtr child_ = nullptr;
+  bool is_ret_stmt_ = false;
   CodeList codes_;
 
   void set_next(CNodePtr next);
-   void set_child(CNodePtr child);
+  void set_child(CNodePtr child);
   virtual void code_gen();
 };
 
@@ -99,10 +99,10 @@ public:
   
   CVarDecl(string id,
            CExprPtr first_width,
-           CExprPtr first_value=nullptr,
-           bool is_const=false,
-           bool is_param=false,
-           bool is_ptr=false);
+           CExprPtr first_value = nullptr,
+           bool is_const = false,
+           bool is_param = false,
+           bool is_ptr = false);
   void set_widths();
   CExprPtrList set_values(vector<int> widths,
                           CExprPtr first_value,
@@ -121,14 +121,14 @@ public:
   CFuncDef(DataType ret_type,
            string id,
            CBlkPtr func_body,
-           CVarDPtrList params=CVarDPtrList());
+           CVarDPtrList params = CVarDPtrList());
   void code_gen();
 };
 
 class CBlock: public CNode {
 public:
   CNodePtrList item_list_;
-  bool is_func_body_=false;
+  bool is_func_body_ = false;
 
   void set_func_body();
   void add_item(CNodePtr blk_item);
@@ -174,7 +174,7 @@ public:
 
   CIfElseStmt(CCondPtr cond_expr,
               CStmtPtr if_stmt,
-              CStmtPtr else_stmt=nullptr);
+              CStmtPtr else_stmt = nullptr);
   void code_gen();
 };
 
@@ -206,7 +206,7 @@ public:
   CExprPtr ret_val_;
   DataType ret_type_;
 
-  explicit CRetStmt(CExprPtr ret_val=nullptr);
+  explicit CRetStmt(CExprPtr ret_val = nullptr);
   void code_gen();
 };
 
@@ -217,13 +217,13 @@ public:
   OpType op_type_;
   string sysy_id_;
   string eeyore_id_;
-  bool has_folded_=false;
-  bool has_temped_=false;
+  bool has_folded_ = false;
+  bool has_temped_ = false;
 
   CExpr(ExprType expr_type,
-        int val=0,
-        OpType op_type=opNONE,
-        string sysy_id="");
+        int val = 0,
+        OpType op_type = opNONE,
+        string sysy_id = "");
   virtual void const_fold();
   virtual void gen_temp();
 };
@@ -246,7 +246,7 @@ public:
 
   CArithExpr(OpType op_type,
              CExprPtr lhs_expr,
-             CExprPtr rhs_expr=nullptr);
+             CExprPtr rhs_expr = nullptr);
   void const_fold();
 };
 
@@ -256,7 +256,7 @@ public:
   CExprPtrList params_;
 
   CCallExpr(string func_name,
-            CExprPtrList params=CExprPtrList());
+            CExprPtrList params = CExprPtrList());
   void const_fold();
   void gen_temp();
 };
@@ -270,7 +270,7 @@ public:
 
   CCondExpr(OpType op_type,
             CExprPtr lhs_expr,
-            CExprPtr rhs_expr=nullptr);
+            CExprPtr rhs_expr = nullptr);
   void traverse();
 };
 

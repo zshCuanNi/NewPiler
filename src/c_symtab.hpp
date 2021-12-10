@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <cstdarg>
 
 #define NEW(x) new x
 #define INT_SIZE 4
@@ -22,9 +23,9 @@ class CSymbolTable;
 
 using CEnVTabPtr = CEntryVarTable*;
 using CEnFTabPtr = CEntryFuncTable*;
-using CVarTable = unordered_map<string, CEnVTabPtr>;
-using CFuncTable = unordered_map<string, CEnFTabPtr>;
-using CVarList = vector<CEnVTabPtr>;
+typedef unordered_map<string, CEnVTabPtr> CVarTable;
+typedef unordered_map<string, CEnFTabPtr> CFuncTable;
+typedef vector<CEnVTabPtr> CVarList;
 
 class CEntryVarTable {
 public:
@@ -64,9 +65,9 @@ public:
 
 class CSymbolTable {
 public:
-  int blk_id_=-1;
-  int cur_var_cnt_=0;
-  int cur_param_cnt_=0;
+  int blk_id_ = -1;
+  int cur_var_cnt_ = 0;
+  int cur_param_cnt_ = 0;
   string cur_func_;
   vector<CVarTable> blk_stack_;
   CFuncTable func_tab_;
@@ -75,11 +76,11 @@ public:
   CEnVTabPtr register_var(string sysy_id,
                           vector<int> widths=vector<int>(),
                           vector<int> values=vector<int>(),
-                          bool is_const=false,
-                          bool is_param=false,
-                          bool is_ptr=false,
-                          bool is_arr=false,
-                          bool is_temp=true);
+                          bool is_const = false,
+                          bool is_param = false,
+                          bool is_ptr = false,
+                          bool is_arr = false,
+                          bool is_temp = true);
   CEnFTabPtr register_func(DataType ret_type,
                            string sysy_id);
   CEnVTabPtr find_var(string sysy_id);
@@ -87,5 +88,8 @@ public:
   void new_blk();
   void delete_blk();
 };
+
+template<typename ... Args>
+string format( const string& format, Args ... args );
 
 #endif

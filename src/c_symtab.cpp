@@ -1,4 +1,4 @@
-#include "sysysymtab.hpp"
+#include "c_symtab.hpp"
 #include <cassert>
 
 CEntryVarTable::CEntryVarTable(string sysy_id,
@@ -60,8 +60,7 @@ CEnVTabPtr CSymbolTable::register_var(string sysy_id,
                                       bool is_temp) {
   CEnVTabPtr new_var = NEW(CEntryVarTable)(
       sysy_id, widths, values, is_const, is_param,
-      is_ptr, is_arr, is_temp
-  );
+      is_ptr, is_arr, is_temp);
 
   if (is_param) {
   // parameter of a function
@@ -85,8 +84,8 @@ CEnVTabPtr CSymbolTable::register_var(string sysy_id,
 CEnFTabPtr CSymbolTable::register_func(DataType ret_type,
                                        string sysy_id) {
   cur_func_ = sysy_id;
-  func_tab_[cur_func_] = NEW(CEntryFuncTable)(ret_type, sysy_id);
-  return func_tab_[cur_func_];
+  func_tab_[sysy_id] = NEW(CEntryFuncTable)(ret_type, sysy_id);
+  return func_tab_[sysy_id];
 }
 
 CEnVTabPtr CSymbolTable::find_var(string sysy_id) {

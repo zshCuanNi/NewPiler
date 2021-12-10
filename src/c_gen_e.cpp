@@ -1,10 +1,8 @@
-#include "sysyast.hpp"
-#include <cstdarg>
+#include "c_ast.hpp"
 #include <cassert>
 #include <unistd.h>
 
-extern FILE* f_log;
-extern CSymbolTable* sym_tab;
+extern CSymbolTable* C_sym_tab;
 int temp_cnt;
 int fall_label=0;
 int while_start_label=0;
@@ -169,7 +167,7 @@ void CVarDecl::code_gen() {
   for (CExprPtr value: values_) c_values.push_back(value->val_);
   // set 0 for implicitly initialized vars (useful for global vars)
   c_values.insert(c_values.end(), size_ - values_.size(), 0);
-  CEnVTabPtr entry = sym_tab->register_var(
+  CEnVTabPtr entry = C_sym_tab->register_var(
       id_, widths_, c_values, is_const_,
       is_param_, is_ptr_, is_arr_, false);
 
@@ -177,7 +175,7 @@ void CVarDecl::code_gen() {
   if (is_param_) return;
   
   // declare global variables
-  if (sym_tab->blk_id_ == GLOBAL_BLOCK) {
+  if (C_sym_tab->blk_id_ == GLOBAL_BLOCK) {
       codes_.push_back(gen_var_decl(entry, false));
       // initialize non-array global variables in global scope
       if (!is_arr_) 
@@ -206,9 +204,9 @@ void CFuncDef::code_gen() {
     func_body_->item_list_.push_back(man_made_ret);
   
   // register function in symbol table
-  CEnFTabPtr entry = sym_tab->register_func(ret_type_, id_);
+  CEnFTabPtr entry = C_sym_tab->register_func(ret_type_, id_);
   
-  sym_tab->new_blk();
+  C_sym_tab->new_blk();
   // fisrt do registration and code generation of parameters
   for (CVarDPtr param: params_)
     param->code_gen();
@@ -226,7 +224,7 @@ void CFuncDef::code_gen() {
       codes_.push_back(gen_var_decl(var, true));
   // initialize global arrays at the beginning of main()
   if (id_ == "main")
-    for (auto& id_var_pair: sym_tab->blk_stack_[GLOBAL_BLOCK]) {
+    for (auto& id_var_pair: C_sym_tab->blk_stack_[GLOBAL_BLOCK]) {
       CEnVTabPtr var = id_var_pair.second;
       if (var->is_arr_)
         for (int index = 0; index < (int)var->values_.size(); ++index)
@@ -242,20 +240,20 @@ void CFuncDef::code_gen() {
   // function tail
   codes_.push_back(format("end %s", entry->eeyore_id_.c_str()));
   codes_.push_back("");
-  sym_tab->delete_blk();
+  C_sym_tab->delete_blk();
 }
 
 void CBlock::code_gen() {
   if (item_list_.empty()) return;
   // block will be created in FuncDef if the block is a function body
   if (!is_func_body_)
-    sym_tab->new_blk();
+    C_sym_tab->new_blk();
   for (CNodePtr item: item_list_)
     item->code_gen();
   for (CNodePtr item: item_list_)
     codes_.splice(codes_.end(), item->codes_);
   if (!is_func_body_)
-    sym_tab->delete_blk();
+    C_sym_tab->delete_blk();
 }
 
 void CAssignStmt::code_gen() {
@@ -280,7 +278,7 @@ void CExprStmt::code_gen() {
   if (expr_->expr_type_ != eCALL) return;
   // find this function in function table and get its ret_type
   CCallExpr* func_call = (CCallExpr*) expr_;
-  CEnFTabPtr entry = sym_tab->find_func(func_call->func_name_);
+  CEnFTabPtr entry = C_sym_tab->find_func(func_call->func_name_);
   if (entry->ret_type_ == datVOID) {
     codes_.splice(codes_.end(), func_call->codes_);
     codes_.push_back(format("\t%s", func_call->eeyore_id_.c_str()));
@@ -376,7 +374,7 @@ void CExpr::const_fold() {
     case eNUM:
       eeyore_id_ = to_string(val_); break;
     case eVAR: {
-      CEnVTabPtr entry = sym_tab->find_var(sysy_id_);
+      CEnVTabPtr entry = C_sym_tab->find_var(sysy_id_);
       eeyore_id_ = entry->eeyore_id_;
       if (entry->is_const_ && entry->widths_.empty()) {
         expr_type_ = eNUM;
@@ -399,7 +397,7 @@ void CExpr::gen_temp() {
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
   // register this temp variable
-  sym_tab->register_var(sysy_id_);
+  C_sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
 
@@ -428,7 +426,7 @@ static CExprPtr index_unfold(const CExprPtrList index,
 void CLValExpr::const_fold() {
   if (has_folded_) return;
 
-  CEnVTabPtr entry = sym_tab->find_var(lval_name_);
+  CEnVTabPtr entry = C_sym_tab->find_var(lval_name_);
   if (entry->is_arr_) {
   // set indexes for array
     CExprPtr cur_node = first_dim_index_;
@@ -601,7 +599,7 @@ void CCallExpr::gen_temp() {
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
   // register this temp variable
-  sym_tab->register_var(sysy_id_);
+  C_sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
 

@@ -1,7 +1,6 @@
-#include "sysyast.hpp"
+#include "c_ast.hpp"
 
 extern int yylineno;
-extern FILE* f_log;
 
 void CNode::set_next(CNodePtr next) { next_ = next; }
 void CNode::set_child(CNodePtr child) { child_ = child; }

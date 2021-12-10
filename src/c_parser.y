@@ -1,9 +1,9 @@
 %{
 #include <cstdio>
 #include <cstdlib>
-#include "sysyast.hpp"
+#include "c_ast.hpp"
 extern int yylineno;
-extern CBlkPtr CASTRoot;
+extern CBlkPtr C_AST_Root;
 int yyparse();
 int yylex();
 void yyerror(const char *msg, int lineno=yylineno);
@@ -47,7 +47,7 @@ void yyerror(const char *msg, int lineno=yylineno);
 %%
 
 Root:
-      CompUnit                  { CASTRoot = $1; }
+      CompUnit                  { C_AST_Root = $1; }
     ;
 CompUnit:
       CompUnit Decl             { $1->add_item($2); $$ = $1; }
