@@ -2,7 +2,7 @@
 #include <cassert>
 #include "newpiler.hpp"
 
-inline bool start_with(string& str, string head) {
+inline bool start_with(string str, string head) {
   return str.compare(0, head.size(), head) == 0;
 }
 

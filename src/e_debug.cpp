@@ -1,41 +1,6 @@
 #include <cassert>
 #include "newpiler.hpp"
 
-/* Print every eeyore stmt stored in e_sym_tab. */
-void Newpiler::eeyore_debug() {
-  assert(e_sym_tab);
-  for (auto func_id: e_sym_tab->func_ids_) {
-    auto func = e_sym_tab->func_tab_[func_id];
-    if (func->func_id_ == "global") {
-      for (auto id_var_pair: func->locals_) {
-        auto var = id_var_pair.second;
-        if (var->is_arr_)
-          fprintf(f_out_, "var %d %s\n", var->width_, var->eeyore_id_.c_str());
-        else
-          fprintf(f_out_, "var %s\n", var->eeyore_id_.c_str());
-      }
-      for (auto stmt: func->stmts_)
-        fprintf(f_out_, "%s\n", stmt->debug_print().c_str());
-    } else {
-      fprintf(f_out_, "%s [%d]\n", func->func_id_.c_str(), func->param_num_);
-      for (auto id_var_pair: func->locals_) {
-        auto var = id_var_pair.second;
-        if (var->is_arr_)
-          fprintf(f_out_, "\tvar %d %s\n", var->width_, var->eeyore_id_.c_str());
-        else
-          fprintf(f_out_, "\tvar %s\n", var->eeyore_id_.c_str());
-      }
-      for (auto stmt: func->stmts_) {
-        string stmt_str = stmt->debug_print();
-        // if has label prefix, no need to add heading \t
-        if (!start_with(stmt_str, "l")) stmt_str = "\t" + stmt_str;
-        fprintf(f_out_, "%s\n", stmt_str.c_str());
-      }
-      fprintf(f_out_, "end %s\n\n", func->func_id_.c_str());
-    }
-  }
-}
-
 string ENode::debug_print() {
   string ret_str = "";
   for (int label: labels_)
@@ -131,4 +96,71 @@ string EGoto::debug_print() {
   // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   return ret_str.append(format("goto l%d", where_));
+}
+
+void gen_var_decls(FILE* f_out, EVarTable& var_table, bool is_indent) {
+  string indent = is_indent? "\t": "";
+  for (auto id_var_pair: var_table) {
+        auto var = id_var_pair.second;
+        if (var->is_arr_)
+          fprintf(f_out, "%svar %d %s\n",
+            indent.c_str(), var->width_, var->eeyore_id_.c_str());
+        else
+          fprintf(f_out, "%svar %s\n",
+            indent.c_str(), var->eeyore_id_.c_str());
+      }
+}
+
+/* Print eeyore codes stored in e_sym_tab according to eeyore ast. */
+void Newpiler::eeyore_ast_debug() {
+  FILE* f_out = f_out_;
+  assert(e_sym_tab);
+  assert(f_out);
+  for (auto func_id: e_sym_tab->func_ids_) {
+    auto func = e_sym_tab->func_tab_[func_id];
+    if (func->func_id_ == "global") {
+      gen_var_decls(f_out, func->locals_, false);
+      for (auto stmt: func->stmts_)
+        fprintf(f_out, "%s\n", stmt->debug_print().c_str());
+    } else {
+      fprintf(f_out, "%s [%d]\n", func->func_id_.c_str(), func->param_num_);
+      gen_var_decls(f_out, func->locals_, true);
+      for (auto stmt: func->stmts_) {
+        string stmt_str = stmt->debug_print();
+        // if has label prefix, no need to add heading \t
+        if (!start_with(stmt_str, "l")) stmt_str = "\t" + stmt_str;
+        fprintf(f_out, "%s\n", stmt_str.c_str());
+      }
+      fprintf(f_out, "end %s\n\n", func->func_id_.c_str());
+    }
+  }
+}
+
+/* Print eeyore codes after basic block division.
+ * have cleared dead codes and redundant labels
+ */
+void Newpiler::eeyore_block_debug() {
+  FILE* f_out = f_out_;
+  assert(e_sym_tab);
+  assert(f_out);
+  for (auto func_id: e_sym_tab->func_ids_) {
+    auto func = e_sym_tab->func_tab_[func_id];
+    if (func->func_id_ == "global") {
+      gen_var_decls(f_out, func->locals_, false);
+      for (auto stmt: func->stmts_)
+        fprintf(f_out, "%s\n", stmt->debug_print().c_str());
+    } else {
+      fprintf(f_out, "%s [%d]\n", func->func_id_.c_str(), func->param_num_);
+      gen_var_decls(f_out, func->locals_, true);
+      for (auto b_blk: func->blocks_) {
+        for (auto stmt: b_blk->stmts_) {
+          string stmt_str = stmt->debug_print();
+          // if has label prefix, no need to add heading \t
+          if (!start_with(stmt_str, "l")) stmt_str = "\t" + stmt_str;
+          fprintf(f_out, "%s\n", stmt_str.c_str());
+        }
+      }
+      fprintf(f_out, "end %s\n\n", func->func_id_.c_str());
+    }
+  }
 }

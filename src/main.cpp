@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
     out_name = string(argv[5]);
     log_name = out_name.substr(0, out_name.find("."));
     log_name.append(".log");
-    // f_log = fopen(log_name.c_str(), "w");
-    // assert(f_log);
+    f_log = fopen(log_name.c_str(), "w");
+    assert(f_log);
   }
 
   FILE* f_out = fopen(out_name.c_str(), "w");
@@ -37,11 +37,12 @@ int main(int argc, char** argv) {
   } while (!feof(yyin));
 
   C_AST_Root->code_gen();
-  Newpiler new_piler = Newpiler(f_out, C_AST_Root->codes_);
+  Newpiler new_piler = Newpiler(f_out, C_AST_Root->codes_, f_log);
   // new_piler.print_eeyore_codes();
   new_piler.parse_eeyore();
-  new_piler.eeyore_debug();
+  new_piler.gen_control_flow_graph();
+  new_piler.eeyore_block_debug();
   fclose(yyin);
   fclose(f_out);
-  // fclose(f_log);
+  fclose(f_log);
 }

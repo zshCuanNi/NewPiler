@@ -6,23 +6,34 @@
 #include <map>
 #include "c_symtab.hpp"
 
+class EBasicBlock;
 class EEntryVarTable;
 class EEntryFuncTable;
 class ESymbolTable;
 class ENode;
 
+using EBBlkPtr = EBasicBlock*;
 using EEnVTabPtr = EEntryVarTable*;
 using EEnFTabPtr = EEntryFuncTable*;
 typedef unordered_map<string, EEnVTabPtr> EVarTable;
 typedef unordered_map<string, EEnFTabPtr> EFuncTable;
 typedef list<ENode*> EStmtList;
 typedef unordered_set<string> VarSet;
+typedef vector<EBBlkPtr> BlockList;
 
 class EBasicBlock {
+public:
+  bool is_vis_ = false;
   int blk_id_;
   EStmtList stmts_;
-  vector<EBasicBlock*> pred_;
-  vector<EBasicBlock*> succ_;
+  BlockList preds_;
+  BlockList succs_;
+  VarSet live_in_, live_out_;
+
+  EBasicBlock(int blk_id);
+  void append_stmt(ENode* stmt);
+  void add_pred(EBBlkPtr pred);
+  void add_succ(EBBlkPtr succ);
 };
 
 class EEntryVarTable {
@@ -46,11 +57,12 @@ public:
   EStmtList stmts_;
   EVarTable locals_;
   unordered_map<int, ENode*> label_to_node_;
-  // vector<Block>
+  BlockList blocks_;
 
   EEntryFuncTable() = default;
   EEntryFuncTable(string eeyore_id,
                   int param_num);
+  void append_block(EBBlkPtr basic_block);
 };
 
 class ESymbolTable {

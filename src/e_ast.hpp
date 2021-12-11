@@ -45,7 +45,7 @@ enum EExprType { eeNUM, eeSB, eeCALL, eeOP, eeARR };
 
 class ENode {
 public:
-  bool is_entry_ = false;
+  bool is_entry_ = false, is_exit_ = false;
   vector<int> labels_ = vector<int>();
   
   LineType line_type_;

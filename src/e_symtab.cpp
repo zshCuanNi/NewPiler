@@ -14,6 +14,10 @@ ESymbolTable::ESymbolTable() {
   register_func("global", 0);
 }
 
+void EEntryFuncTable::append_block(EBBlkPtr basic_block) {
+  blocks_.push_back(basic_block);
+}
+
 void ESymbolTable::register_var(string eeyore_id,
                                 bool is_arr,
                                 int width) {
@@ -40,3 +44,12 @@ void ESymbolTable::add_stmt(ENode* stmt) {
 EEnFTabPtr ESymbolTable::get_cur_func() {
   return func_tab_[cur_func_];
 }
+
+EBasicBlock::EBasicBlock(int blk_id)
+: blk_id_(blk_id) {}
+
+void EBasicBlock::append_stmt(ENode* stmt) { stmts_.push_back(stmt); }
+
+void EBasicBlock::add_pred(EBBlkPtr pred) { preds_.push_back(pred); }
+
+void EBasicBlock::add_succ(EBBlkPtr succ) { succs_.push_back(succ); }
