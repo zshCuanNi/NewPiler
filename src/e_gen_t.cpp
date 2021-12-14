@@ -138,26 +138,25 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
   // In this case, the useless def stmt should not be translated,
   // otherwise the register will be covered by a wrong value.
   // TODO: do dead code elimination when do dataflow analysis
-  // ??? adding it makes more case unpassed ...
-  // if (stmt->line_type_ == lASN) {
-  //   auto cast_stmt = (EAsnPtr)stmt;
-  //   if (cast_stmt->lhs_->expr_type_ == eeSB) {
-  //     auto cast_lhs = (ESymbol*)cast_stmt->lhs_;
-  //     if (func->locals_.count(cast_lhs->id_)) {
-  //       LiveInterval li_i = LiveInterval("", 0, 0);
-  //       for (auto& li_j: func->live_intervals_) {
-  //         if (li_j.var_id_ == cast_lhs->id_) {
-  //           li_i = li_j; break;
-  //         }
-  //       }
-  //       if (li_i.end_ < cast_stmt->stmtno_) {
-  //         if (cast_stmt->rhs_->expr_type_ == eeCALL)
-  //           stmt = cast_stmt->rhs_;
-  //         else return;
-  //       }
-  //     }
-  //   }
-  // }
+  if (stmt->line_type_ == lASN) {
+    auto cast_stmt = (EAsnPtr)stmt;
+    if (cast_stmt->lhs_->expr_type_ == eeSB) {
+      auto cast_lhs = (ESymbol*)cast_stmt->lhs_;
+      if (func->locals_.count(cast_lhs->id_)) {
+        LiveInterval li_i = LiveInterval("", 0, 0);
+        for (auto& li_j: func->live_intervals_) {
+          if (li_j.var_id_ == cast_lhs->id_) {
+            li_i = li_j; break;
+          }
+        }
+        if (li_i.end_ < cast_stmt->stmtno_) {
+          if (cast_stmt->rhs_->expr_type_ == eeCALL)
+            stmt = cast_stmt->rhs_;
+          else return;
+        }
+      }
+    }
+  }
   switch (stmt->line_type_) {
     case lASN: {
       auto cast_stmt = (EAsnPtr)stmt;
