@@ -563,8 +563,10 @@ void CArithExpr::const_fold() {
       eeyore_id_ = to_string(val_);
     } else {
     // expicitly generate code for non-constants
+    // seperate unop and var with space on purpose
+    // when parsing eeyore to ast, unop and var will be seperatley dealt with
       assert(int(op_type_) >= 11 && int(op_type_) <= 13);
-      eeyore_id_ = format("%s%s",
+      eeyore_id_ = format("%s %s",
                           op_str[int(op_type_)].c_str(),
                           lhs_expr_->eeyore_id_.c_str());
       codes_.splice(codes_.end(), lhs_expr_->codes_);

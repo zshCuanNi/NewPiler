@@ -1,3 +1,4 @@
+#include <cassert>
 #include "e_symtab.hpp"
 
 EEntryVarTable::EEntryVarTable(string eeyore_id,
@@ -16,6 +17,10 @@ ESymbolTable::ESymbolTable() {
 
 void EEntryFuncTable::append_block(EBBlkPtr basic_block) {
   blocks_.push_back(basic_block);
+}
+
+void EEntryFuncTable::insert_live_interval(LiveInterval l) {
+  live_intervals_.insert(l);
 }
 
 void ESymbolTable::register_var(string eeyore_id,
@@ -45,6 +50,20 @@ EEnFTabPtr ESymbolTable::get_cur_func() {
   return func_tab_[cur_func_];
 }
 
+EEnFTabPtr ESymbolTable::find_func(string func_id) {
+  return func_tab_[func_id];
+}
+
+EEnVTabPtr ESymbolTable::find_var(string var_id, string func_id) {
+  assert(func_tab_.count(func_id));
+  if (func_tab_[func_id]->locals_.count(var_id))
+    return func_tab_[func_id]->locals_[var_id];
+  else {
+    assert(func_tab_["global"]->locals_.count(var_id));
+    return func_tab_["global"]->locals_[var_id];
+  }
+}
+
 EBasicBlock::EBasicBlock(int blk_id)
 : blk_id_(blk_id) {}
 
@@ -53,3 +72,10 @@ void EBasicBlock::append_stmt(ENode* stmt) { stmts_.push_back(stmt); }
 void EBasicBlock::add_pred(EBBlkPtr pred) { preds_.push_back(pred); }
 
 void EBasicBlock::add_succ(EBBlkPtr succ) { succs_.push_back(succ); }
+
+ENode* EBasicBlock::get_entry_stmt() { return *stmts_.begin(); }
+
+ENode* EBasicBlock::get_exit_stmt() { return *stmts_.rbegin(); }
+
+LiveInterval::LiveInterval(string var_id, int start, int end)
+: var_id_(var_id), start_(start), end_(end) {}

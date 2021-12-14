@@ -117,7 +117,7 @@ void Newpiler::eeyore_ast_debug() {
   assert(e_sym_tab);
   assert(f_out);
   for (auto func_id: e_sym_tab->func_ids_) {
-    auto func = e_sym_tab->func_tab_[func_id];
+    auto func = e_sym_tab->find_func(func_id);
     if (func->func_id_ == "global") {
       gen_var_decls(f_out, func->locals_, false);
       for (auto stmt: func->stmts_)
@@ -144,7 +144,7 @@ void Newpiler::eeyore_block_debug() {
   assert(e_sym_tab);
   assert(f_out);
   for (auto func_id: e_sym_tab->func_ids_) {
-    auto func = e_sym_tab->func_tab_[func_id];
+    auto func = e_sym_tab->find_func(func_id);
     if (func->func_id_ == "global") {
       gen_var_decls(f_out, func->locals_, false);
       for (auto stmt: func->stmts_)
@@ -162,5 +162,52 @@ void Newpiler::eeyore_block_debug() {
       }
       fprintf(f_out, "end %s\n\n", func->func_id_.c_str());
     }
+  }
+}
+
+/* Print liveness information for debug */
+void Newpiler::liveness_debug() {
+  FILE* f_out = f_log_;
+  assert(e_sym_tab);
+  assert(f_out);
+  for (auto func_id: e_sym_tab->func_ids_) {
+    auto func = e_sym_tab->find_func(func_id);
+    if (func->func_id_ == "global") continue;
+    fprintf(f_out, "FUNCTION %s BEGIN\n", func->func_id_.c_str());
+    for (auto& li: func->live_intervals_)
+      fprintf(f_out, "var %4s [%d, %d]\n", li.var_id_.c_str(), li.start_, li.end_);
+    for (auto stmt: func->stmts_) {
+      string stmt_str = stmt->debug_print();
+      if (!start_with(stmt_str, "l")) stmt_str = "\t" + stmt_str;
+      string info_str = format("\t\t\t\tstmt-%d: ", stmt->stmtno_);
+      info_str.append("\tdef: ");
+      for (auto var: stmt->def_) info_str.append(format("%s,", var.c_str()));
+      info_str.append("\tuse: ");
+      for (auto var: stmt->use_) info_str.append(format("%s,", var.c_str()));
+      info_str.append("\tin: ");
+      for (auto var: stmt->live_in_) info_str.append(format("%s,", var.c_str()));
+      info_str.append("\tout: ");
+      for (auto var: stmt->live_out_) info_str.append(format("%s,", var.c_str()));
+      fprintf(f_out, "%s\n", stmt_str.append(info_str).c_str());
+    }
+    fprintf(f_out, "FUNCTION %s END\n", func->func_id_.c_str());
+  }
+}
+
+/* Print results of Linear Scan Register Allocation for debug */
+void Newpiler::linear_scan_debug() {
+  FILE* f_out = f_log_;
+  assert(e_sym_tab);
+  assert(f_out);
+  for (auto func_id: e_sym_tab->func_ids_) {
+    auto func = e_sym_tab->find_func(func_id);
+    if (func->func_id_ == "global") continue;
+    fprintf(f_out, "%s [%d]\n", func->func_id_.c_str(), func->param_num_);
+    gen_var_decls(f_out, func->locals_, true);
+    for (auto& li: func->live_intervals_)
+      fprintf(f_out, "var %4s [%d, %d]\n", li.var_id_.c_str(), li.start_, li.end_);
+    for (auto& var_reg_pair: func->var2reg)
+      fprintf(f_out, "%s -> %s\n", var_reg_pair.first.c_str(), var_reg_pair.second.c_str());
+    fprintf(f_out, "end %s\n\n", func->func_id_.c_str());
   }
 }

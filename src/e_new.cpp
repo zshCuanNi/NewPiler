@@ -2,6 +2,10 @@
 
 ENode::ENode(LineType line_type): line_type_(line_type) {}
 
+void ENode::add_pred(ENodePtr pred) { preds_.push_back(pred); }
+
+void ENode::add_succ(ENodePtr succ) { succs_.push_back(succ); }
+
 EExpr::EExpr(EExprType expr_type, string op, EExprPtr lhs, EExprPtr rhs)
 :ENode(lEXPR), expr_type_(expr_type), op_(op), lhs_(lhs), rhs_(rhs) {
   if (expr_type_ == eeCALL) line_type_ = lCALL;

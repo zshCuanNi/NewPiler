@@ -35,6 +35,7 @@ class EIf;
 using ENodePtr = ENode*;
 using EExprPtr = EExpr*;
 using ECallPtr = ECall*;
+using EAsnPtr = EAssign*;
 using ERetPtr = EReturn*;
 using EGotoPtr = EGoto*;
 using EIfPtr = EIf*;
@@ -50,10 +51,14 @@ public:
   
   LineType line_type_;
   int lineno_;
-  VarSet def_, use_;
+  int stmtno_;
+  EStmtList preds_, succs_;
+  VarSet def_, use_, live_in_, live_out_;
   
   ENode(LineType line_type);
   virtual string debug_print();
+  void add_pred(ENodePtr pred);
+  void add_succ(ENodePtr succ);
 };
 
 class EExpr: public ENode {
