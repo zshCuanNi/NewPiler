@@ -61,14 +61,30 @@ struct CmpEnd {
   }
 };
 
+/* first get callee saved regs, then caller saved regs, last param regs
+ * every time select the max-id reg to increase its re-use time
+ * a7 is preferred than a0 because the latter is more dangerous when
+ * dealing with return value of a function and in param passing process.
+ */
 string get_free_reg(set<string>& free_regs) {
-  // srand((int)time(0));
-  // TODO: set seed to 0 for debug
-  srand(0);
-  int to_be_freed = rand() % (int)free_regs.size();
-  auto it = free_regs.begin();
-  while (to_be_freed--) it++;
-  return *it;
+  int callee_no = -1, caller_no = -1, param_no = -1;
+  for (auto free_reg: free_regs) {
+    switch (free_reg[0]) {
+      case 's':
+        callee_no = max(callee_no, stoi(free_reg.substr(1, 2))); break;
+      case 't':
+        caller_no = max(caller_no, stoi(free_reg.substr(1, 2))); break;
+      case 'a':
+        param_no = max(param_no, stoi(free_reg.substr(1, 2))); break;
+      default: assert(false);
+    }
+  }
+  string ret_reg;
+  if (callee_no != -1) ret_reg = format("s%d", callee_no);
+  else if (caller_no != -1) ret_reg = format("t%d", caller_no);
+  else if (param_no != -1) ret_reg = format("a%d", param_no);
+  else assert(false);
+  return ret_reg;
 }
 
 void alloc_stack_pos(EVarTable& vars,
