@@ -1,4 +1,6 @@
+%option yylineno
 %option noyywrap
+%option nounput
 %{
 #include <cstdlib>
 #include "c_ast.hpp"
