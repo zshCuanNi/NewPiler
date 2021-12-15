@@ -204,10 +204,14 @@ void Newpiler::linear_scan_debug() {
     if (func->func_id_ == "global") continue;
     fprintf(f_out, "%s [%d]\n", func->func_id_.c_str(), func->param_num_);
     gen_var_decls(f_out, func->locals_, true);
-    for (auto& li: func->live_intervals_)
-      fprintf(f_out, "var %4s [%d, %d]\n", li.var_id_.c_str(), li.start_, li.end_);
-    for (auto& var_reg_pair: func->var2reg)
-      fprintf(f_out, "%s -> %s\n", var_reg_pair.first.c_str(), var_reg_pair.second.c_str());
+    for (auto& li: func->live_intervals_) {
+      fprintf(f_out, "var %4s [%d, %d] | ", li.var_id_.c_str(), li.start_, li.end_);
+      if (func->var2reg.count(li.var_id_))
+        fprintf(f_out, "=> %s | ", func->var2reg[li.var_id_].c_str());
+      if (func->var2stack.count(li.var_id_))
+        fprintf(f_out, "-> stk %d", func->var2stack[li.var_id_]);
+      fprintf(f_out, "\n");
+    }
     fprintf(f_out, "end %s\n\n", func->func_id_.c_str());
   }
 }

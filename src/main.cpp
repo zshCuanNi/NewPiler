@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     new_piler.cal_live_intervals();
     // new_piler.liveness_debug();
     new_piler.linear_scan();
-    // new_piler.linear_scan_debug();
+    new_piler.linear_scan_debug();
     new_piler.compile_eeyore();
     new_piler.print_tigger_codes();
   }

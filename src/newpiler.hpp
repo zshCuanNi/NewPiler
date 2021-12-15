@@ -62,8 +62,8 @@ public:
   // helper functions
   void save_regs(vector<string> regs);
   void restore_regs(vector<string> regs);
-  string get_reg(EExprPtr rval, string specify_reg = "");
-  string get_reg(string var_id, string specify_reg = "");
+  string get_reg(EExprPtr rval, string specify_reg = "", bool is_load = true);
+  string get_reg(string var_id, string specify_reg = "", bool is_load = true);
   string get_reg(int number, string specify_reg = "");
   void store_into_stack(string reg, string var_id);
   bool is_global(string var_id);

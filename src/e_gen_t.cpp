@@ -132,7 +132,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
   }
 
   // a temporary patch
-  // If a var is def by the stmt but never used after,
+  // If a var is def'ed out of its live interval,
   // liveness analysis regard it non-live at this point,
   // hence may allocate its register to another var.
   // In this case, the useless def stmt should not be translated,
@@ -149,7 +149,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
             li_i = li_j; break;
           }
         }
-        if (li_i.end_ < cast_stmt->stmtno_) {
+        if (li_i.end_ < cast_stmt->stmtno_ || li_i.start_ > cast_stmt->stmtno_) {
           if (cast_stmt->rhs_->expr_type_ == eeCALL)
             stmt = cast_stmt->rhs_;
           else return;
@@ -164,10 +164,11 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
       auto rhs = cast_stmt->rhs_;
       if (lhs->expr_type_ == eeARR) {
       // SYMBOL[RVal] = RVal
-        string reg_ll = get_reg(lhs->lhs_, "s1");
+        string reg_ll;
         if (lhs->rhs_->expr_type_ == eeNUM) {
         // SB[NUM] = RVal ==>
         // loadaddr SB s1, load RVal s2, RVal s1[NUM] = s2
+          reg_ll = get_reg(lhs->lhs_, "s1");
           string reg_r = get_reg(rhs, "s2");
           tigger_codes_.push_back(
             format("\t%s[%d] = %s",
@@ -178,6 +179,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
         } else {
         // SB1[SB2] = RVal ==>
         // loadaddr SB1 s1, load SB2 s2, s1 = s1 + s2, load RVal s2, s1[0] = s2
+          reg_ll = get_reg(lhs->lhs_, "s1");
           string reg_lr = get_reg(lhs->rhs_, "s2");
           tigger_codes_.push_back(
             format("\ts1 = %s + %s", reg_ll.c_str(), reg_lr.c_str())
@@ -192,8 +194,8 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
         string lhs_id = ((ESymbol*)lhs)->id_;
         switch (rhs->expr_type_) {
           case eeNUM: {
-          // SYMBOL = NUM ==> load SYMBOL s1, s1 = NUM
-            string reg = get_reg(lhs);
+          // SYMBOL = NUM ==> s1 = NUM
+            string reg = get_reg(lhs, "s1", false);
             tigger_codes_.push_back(
               format("\t%s = %d", reg.c_str(), ((ENumber*)rhs)->val_)
             );
@@ -202,8 +204,8 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
             break;
           }
           case eeSB: {
-          // SB1 = SB2 ==> load SB1 s1, load SB2 s2, s1 = s2
-            string reg_l = get_reg(lhs, "s1");
+          // SB1 = SB2 ==> load SB2 s2, s1 = s2
+            string reg_l = get_reg(lhs, "s1", false);
             string reg_r = get_reg(rhs, "s2");
             tigger_codes_.push_back(
               format("\t%s = %s", reg_l.c_str(), reg_r.c_str())
@@ -214,11 +216,12 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
           }
           case eeARR: {
           // SYMBOL = SYMBOL[RVal]
-            string reg_l = get_reg(lhs, "s1");
-            string reg_rl = get_reg(rhs->lhs_, "s2");
+            string reg_l ,reg_rl, reg_rr;
             if (rhs->rhs_->expr_type_ == eeNUM) {
             // SB1 = SB2[NUM] ==>
-            // loadaddr SB2 s2, load SB1 s1, s1 = s2[NUM]
+            // loadaddr SB2 s2, s1 = s2[NUM]
+              reg_l = get_reg(lhs, "s1", false);
+              reg_rl = get_reg(rhs->lhs_, "s2");
               tigger_codes_.push_back(
                 format("\t%s = %s[%d]",
                        reg_l.c_str(),
@@ -227,11 +230,13 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
               );
             } else {
             // SB1 = SB2[SB3] ==>
-            // loadaddr SB2 s2, load SB3 s1, s2 = s2 + s1, load SB1 s1, s1 = s2[0]
-              string reg_rr = get_reg(rhs->rhs_, "s1");
+            // loadaddr SB2 s2, load SB3 s1, s2 = s2 + s1, s1 = s2[0]
+              reg_rl = get_reg(rhs->lhs_, "s2");
+              reg_rr = get_reg(rhs->rhs_, "s1");
               tigger_codes_.push_back(
                 format("\ts2 = %s + %s", reg_rl.c_str(), reg_rr.c_str())
               );
+              reg_l = get_reg(lhs, "s1", false);
               tigger_codes_.push_back(
                 format("\t%s = s2[0]", reg_l.c_str())
               );
@@ -241,13 +246,14 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
             break;
           }
           case eeOP: {
-            string reg_l = get_reg(lhs, "s1");
+            string reg_l ,reg_rl, reg_rr;
             if (rhs->rhs_) {
             // SYMBOL = RVal BinOp RVal
             // TODO: strength reduction
               if (rhs->rhs_->expr_type_ == eeNUM) {
               // SYMBOL = RVal BinOp NUM ==> s1 = s2 BinOp NUM
-                string reg_rl = get_reg(rhs->lhs_, "s2");
+                reg_rl = get_reg(rhs->lhs_, "s2");
+                reg_l = get_reg(lhs, "s1", false);
                 tigger_codes_.push_back(
                   format("\t%s = %s %s %d",
                          reg_l.c_str(),
@@ -256,9 +262,11 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                          ((ENumber*)rhs->rhs_)->val_)
                 );
               } else {
-              // SB1 = SB2 BinOp SB3 ==> s1 = s2 BinOp s1
-                string reg_rl = get_reg(rhs->lhs_, "s2");
-                string reg_rr = get_reg(rhs->rhs_, "s1");
+              // SB1 = SB2 BinOp SB3 ==>
+              // load SB2 s1, load SB3 s2, s1 = s1 BinOp s2
+                reg_rl = get_reg(rhs->lhs_, "s1");
+                reg_rr = get_reg(rhs->rhs_, "s2");
+                reg_l = get_reg(lhs, "s1", false);
                 tigger_codes_.push_back(
                   format("\t%s = %s %s %s",
                          reg_l.c_str(),
@@ -274,17 +282,19 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                 int val = ((ENumber*)rhs->lhs_)->val_;
                 if (rhs->op_ == "-") val = -val;
                 else if (rhs->op_ == "!") val = !val;
+                reg_l = get_reg(lhs, "s1", false);
                 tigger_codes_.push_back(
                   format("\t%s = %d", reg_l.c_str(), val)
                 );
               } else {
-              // SB1 = UnOp SB2 => s1 = UnOp s2
-                string reg_r = get_reg(rhs->lhs_, "s2");
+              // SB1 = UnOp SB2 => load SB2 s2, s1 = UnOp s2
+                reg_l = get_reg(lhs, "s1", false);
+                reg_rl = get_reg(rhs->lhs_, "s2");
                 tigger_codes_.push_back(
                   format("%s = %s %s",
                          reg_l.c_str(),
                          rhs->op_.c_str(),
-                         reg_r.c_str())
+                         reg_rl.c_str())
                 );
               }
             }
@@ -473,17 +483,20 @@ void Newpiler::store_into_stack(string reg, string var_id) {
     );
     tigger_codes_.push_back("\ts2[0] = " + reg);
   } else {
+    // assert(var2stack.count(var_id));
     tigger_codes_.push_back(
       format("\tstore %s %d", reg.c_str(), var2stack[var_id])
     );
   }
 }
 
-string Newpiler::get_reg(string var_id, string specify_reg) {
+string Newpiler::get_reg(string var_id, string specify_reg, bool is_load) {
   // Regs which are allocated to arrays have been assigned the arr head
   // addr in advance.
   if (var2reg.count(var_id)) return var2reg[var_id];
   string tmp_reg = specify_reg == ""? "s1": specify_reg;
+  if (!is_load) return tmp_reg;
+  // assert(var2stack.count(var_id));
   int is_g = (int)is_global(var_id);
   int is_a = (int)is_arr(var_id);
   switch ((is_g << 1) + is_a) {
@@ -534,12 +547,12 @@ string Newpiler::get_reg(int number, string specify_reg) {
   } else return "x0";
 }
 
-string Newpiler::get_reg(EExprPtr rval, string specify_reg) {
+string Newpiler::get_reg(EExprPtr rval, string specify_reg, bool is_load) {
   assert(rval->expr_type_ == eeNUM || rval->expr_type_ == eeSB);
   if (rval->expr_type_ == eeNUM)
     return get_reg(((ENumber*)rval)->val_, specify_reg);
   else
-    return get_reg(((ESymbol*)rval)->id_, specify_reg);
+    return get_reg(((ESymbol*)rval)->id_, specify_reg, is_load);
 }
 
 void Newpiler::save_regs(vector<string> regs) {
