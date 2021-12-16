@@ -26,3 +26,8 @@ void Newpiler::print_tigger_codes() {
   for (string& code_line: tigger_codes_)
     fprintf(f_out_, "%s\n", code_line.c_str());
 }
+
+void Newpiler::print_riscv_codes() {
+  for (string& code_line: riscv_codes_)
+    fprintf(f_out_, "%s\n", code_line.c_str());
+}

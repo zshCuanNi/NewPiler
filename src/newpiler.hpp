@@ -11,6 +11,7 @@ public:
   FILE* f_log_;
   CodeList tigger_codes_;
   ESymbolTable* e_sym_tab;
+  CodeList riscv_codes_;
 
   // temp helper memeber vars
   EExprPtrList params_;
@@ -50,8 +51,10 @@ public:
   
   void compile_eeyore();
   void compile_eeyore_stmt(ENodePtr stmt);
+  void parse_compile_tigger();
   void print_eeyore_codes();
   void print_tigger_codes();
+  void print_riscv_codes();
   
   // for debug
   void eeyore_ast_debug();
@@ -68,10 +71,19 @@ public:
   void store_into_stack(string reg, string var_id);
   bool is_global(string var_id);
   bool is_arr(string var_id);
+  bool is_out_of_int12(int int12);
+  void gen_sw(string reg2, int int12, string reg1);
+  void gen_lw(string reg1, int int12, string reg2);
+  void gen_addi(string reg1, string reg2, int int12);
+  void gen_slti(string reg1, string reg2, int int12);
+  void gen_binop(string bop, string reg1, string reg2, string reg3);
 };
 
 bool start_with(string str, string head);
 bool is_param(string var_id);
+bool is_digit(char c);
+char get_useful_peek(stringstream& sstr);
+int get_unsigned_int(stringstream& sstr);
 
 template<typename ... Args>
 string format( const string& format, Args ... args );

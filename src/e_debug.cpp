@@ -65,7 +65,7 @@ string EAssign::debug_print() {
   if (rhs_->expr_type_ == eeCALL) {
     string call_str = rhs_->debug_print();
     string::size_type pos = call_str.find_last_of("\n");
-    if (pos != string::npos) {
+    if (pos != call_str.npos) {
     // has params
       string params_str = call_str.substr(0, pos + 1);
       call_str = call_str.substr(pos + 2, call_str.size() - (pos + 2));
