@@ -261,6 +261,19 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                          rhs->op_.c_str(),
                          ((ENumber*)rhs->rhs_)->val_)
                 );
+              } else
+              if (rhs->lhs_->expr_type_ == eeNUM && (rhs->op_ == "+"
+                || rhs->op_ == "*" || rhs->op_ == ">")) {
+              // SYMBOL = NUM +|*|> RVal ==> s1 = s2 +|*|< NUM
+                reg_rl = get_reg(rhs->rhs_, "s2");
+                reg_l = get_reg(lhs, "s1", false);
+                tigger_codes_.push_back(
+                  format("\t%s = %s %s %d",
+                         reg_l.c_str(),
+                         reg_rl.c_str(),
+                         rhs->op_ == ">"? "<": rhs->op_.c_str(),
+                         ((ENumber*)rhs->lhs_)->val_)
+                );
               } else {
               // SB1 = SB2 BinOp SB3 ==>
               // load SB2 s1, load SB3 s2, s1 = s1 BinOp s2

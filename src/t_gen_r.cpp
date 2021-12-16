@@ -130,6 +130,8 @@ void Newpiler::gen_binop(string bop, string reg1, string reg2, string reg3) {
       reg1.c_str()));
 }
 
+bool is_power_of_2(int x) { return (x & (x - 1)) == 0; }
+
 void Newpiler::parse_compile_tigger() {
   assert(!tigger_codes_.empty());
   int STK;
@@ -305,7 +307,15 @@ void Newpiler::parse_compile_tigger() {
             int int12 = stoi(c2);
             if (c1 == "+") gen_addi(reg1, c0, int12);
             else if (c1 == "<") gen_slti(reg1, c0, int12);
-            else {
+            else if (c1 == "*" && is_power_of_2(int12)) {
+            // optimiation: Reg = Reg * (0|1|2|4|...) ==> muli Reg, Reg, (0|1|2|4|...)
+            // muli instr should be replaced by li(0) | mv(1) | slli(2^k)
+              RPUSH(format("\t%s%s, %s, %d",
+                add_suffix("muli").c_str(),
+                reg1.c_str(),
+                c0.c_str(),
+                int12));
+            } else {
               RPUSH(format("\t%ss0, %d", add_suffix("li").c_str(), int12));
               gen_binop(c1, reg1, c0, "s0");
             }

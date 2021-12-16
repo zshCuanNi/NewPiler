@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
       new_piler.print_tigger_codes();
     } else if (gen_riscv) {
       new_piler.parse_compile_tigger();
+      new_piler.strength_reduction();
       new_piler.print_riscv_codes();
     }
   }

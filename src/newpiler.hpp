@@ -48,7 +48,11 @@ public:
   // linear scan register allocation
   void cal_live_intervals();
   void linear_scan();
+
+  // optimization
+  void strength_reduction();
   
+  // main function
   void compile_eeyore();
   void compile_eeyore_stmt(ENodePtr stmt);
   void parse_compile_tigger();
@@ -84,6 +88,7 @@ bool is_param(string var_id);
 bool is_digit(char c);
 char get_useful_peek(stringstream& sstr);
 int get_unsigned_int(stringstream& sstr);
+string add_suffix(const string& text);
 
 template<typename ... Args>
 string format( const string& format, Args ... args );
