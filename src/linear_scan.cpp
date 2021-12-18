@@ -61,12 +61,16 @@ struct CmpEnd {
   }
 };
 
-/* first get callee saved regs, then caller saved regs, last param regs
- * every time select the max-id reg to increase its re-use time
+/* By default, is_prefer_callee is set to true.
+ * For functions that have few call stmts, caller saved regs is
+ * preferred; for the function 'main', callee saved regs is preferred.
+ * Default behavior:
+ * First get callee saved regs, then caller saved regs, last param regs.
+ * Every time select the max-id reg to increase its re-use time.
  * a7 is preferred than a0 because the latter is more dangerous when
  * dealing with return value of a function and in param passing process.
  */
-string get_free_reg(set<string>& free_regs) {
+string get_free_reg(set<string>& free_regs, bool is_prefer_callee = true) {
   int callee_no = -1, caller_no = -1, param_no = -1;
   for (auto free_reg: free_regs) {
     switch (free_reg[0]) {
@@ -80,10 +84,17 @@ string get_free_reg(set<string>& free_regs) {
     }
   }
   string ret_reg;
-  if (callee_no != -1) ret_reg = format("s%d", callee_no);
-  else if (caller_no != -1) ret_reg = format("t%d", caller_no);
-  else if (param_no != -1) ret_reg = format("a%d", param_no);
-  else assert(false);
+  if (is_prefer_callee) {
+    if (callee_no != -1) ret_reg = format("s%d", callee_no);
+    else if (caller_no != -1) ret_reg = format("t%d", caller_no);
+    else if (param_no != -1) ret_reg = format("a%d", param_no);
+    else assert(false);
+  } else {
+    if (caller_no != -1) ret_reg = format("t%d", caller_no);
+    else if (param_no != -1) ret_reg = format("a%d", param_no);
+    else if (callee_no != -1) ret_reg = format("s%d", callee_no);
+    else assert(false);
+  }
   return ret_reg;
 }
 
@@ -160,7 +171,7 @@ void Newpiler::linear_scan() {
           alloc_stack_pos(func->locals_, var2stack, li_i.var_id_, stk_sz);
         }
       } else {
-        string free_reg = get_free_reg(free_regs);
+        string free_reg = get_free_reg(free_regs, func_id == "f_main");
         var2reg[li_i.var_id_] = free_reg;
         free_regs.erase(free_reg);
         used_regs.insert(free_reg);
