@@ -249,7 +249,6 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
             string reg_l ,reg_rl, reg_rr;
             if (rhs->rhs_) {
             // SYMBOL = RVal BinOp RVal
-            // TODO: strength reduction
               if (rhs->rhs_->expr_type_ == eeNUM) {
               // SYMBOL = RVal BinOp NUM ==> s1 = s2 BinOp NUM
                 reg_rl = get_reg(rhs->lhs_, "s2");
@@ -334,7 +333,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                 );
               else {
                 string var_id = ((ESymbol*)param)->id_;
-                if (var2reg.count(var_id) && start_with(var2reg[var_id], "a")) {
+                if (var2reg.count(var_id) && start_with(var2reg[var_id], "a"))
                 // the reg allocated to this param is a param reg
                 // directly load the value from stack
                   tigger_codes_.push_back(
@@ -342,13 +341,14 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                           reg2stack[var2reg[var_id]],
                           param_regs[i].c_str())
                   );
-                } else {
+                else if (var2reg.count(var_id))
                   tigger_codes_.push_back(
                     format("\t%s = %s",
                           param_regs[i].c_str(),
                           get_reg(var_id).c_str())
                   );
-                }
+                else
+                  get_reg(var_id, param_regs[i]);
               }
             }
             // call the function
@@ -390,7 +390,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
       // TODO: do optimization for something like this below:
       // t1 = t0 <= NUM
       // if t1 == 0 goto l1
-      // ------>
+      // ==>
       // if t0 > NUM goto l1
       // when translating it to tigger, NUM should be kept by a temp reg
       // [NOT essential]
@@ -415,8 +415,6 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
       // save caller saved regs before call
       save_regs(caller_saved_regs);
       // move params into param regs
-      // TODO: for un-allocated vars, directly load the value from stack
-      // should distinguish array or not
       for (int i = 0; i < (int)cast_stmt->params_.size(); i++) {
         auto param = cast_stmt->params_[i];
         if (param->expr_type_ == eeNUM)
@@ -427,7 +425,7 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
           );
         else {
           string var_id = ((ESymbol*)param)->id_;
-          if (var2reg.count(var_id) && start_with(var2reg[var_id], "a")) {
+          if (var2reg.count(var_id) && start_with(var2reg[var_id], "a"))
           // the reg allocated to this param is a param reg
           // directly load the value from stack
             tigger_codes_.push_back(
@@ -435,13 +433,14 @@ void Newpiler::compile_eeyore_stmt(ENodePtr stmt) {
                      reg2stack[var2reg[var_id]],
                      param_regs[i].c_str())
             );
-          } else {
+          else if (var2reg.count(var_id))
             tigger_codes_.push_back(
               format("\t%s = %s",
                      param_regs[i].c_str(),
                      get_reg(var_id).c_str())
             );
-          }
+          else
+            get_reg(var_id, param_regs[i]);
         }
       }
       // call the function

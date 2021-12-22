@@ -310,8 +310,32 @@ void Newpiler::parse_compile_tigger() {
             else if (c1 == "*" && is_power_of_2(int12)) {
             // optimiation: Reg = Reg * (0|1|2|4|...) ==> muli Reg, Reg, (0|1|2|4|...)
             // muli instr should be replaced by li(0) | mv(1) | slli(2^k)
+            // in Strength Reduction
               RPUSH(format("\t%s%s, %s, %d",
                 add_suffix("muli").c_str(),
+                reg1.c_str(),
+                c0.c_str(),
+                int12));
+            }  else if (c1 == "/" && is_power_of_2(int12)) {
+            // optimiation: Reg1 = Reg2 / (1|2|4|...) ==> divi Reg1, Reg2, (1|2|4|...)
+            // divi instr should be replaced by
+            // mv(1) |
+            // (2^k) & Reg2 != s0: srli s0, Reg2, 31; add s0, s0, Reg2; sra Reg1, s0, k
+            // (2^k) & Reg2 == s0: srli Reg1, s0, 31; add s0, Reg1, s0; sra Reg1, s0, k
+            // in Strength Reduction
+              RPUSH(format("\t%s%s, %s, %d",
+                add_suffix("divi").c_str(),
+                reg1.c_str(),
+                c0.c_str(),
+                int12));
+            } else if (c1 == "%" && (int12 == 2 || int12 == 1)) {
+            // optimiation: Reg1 = Reg2 / 2 ==> remi Reg1, Reg2, 2
+            // this instr should be replaced by
+            // Reg2 != s0: srli s0, Reg2, 31; add Reg1, s0, Reg2
+            // Reg2 == s0: srli Reg1, s0, 31; add Reg1, Reg1, s0
+            // in Strength Reduction
+              RPUSH(format("\t%s%s, %s, %d",
+                add_suffix("remi").c_str(),
                 reg1.c_str(),
                 c0.c_str(),
                 int12));
