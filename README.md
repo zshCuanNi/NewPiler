@@ -1,8 +1,8 @@
 # newpiler
 
-Compiler for translating SysY ( a simple C-like language) to RISC-Ⅴ, using Flex and Bison
+Compiler for translating SysY (a simple C-like language) to RISC-Ⅴ, using Flex and Bison
 
-Course project of PKU Compile Course.
+Course project of PKU Compiler Course.
 
 Basically follow the instructions of [PKU compiler course online documentation](https://pku-minic.github.io/online-doc/#/). First, translate SysY to a high-level intermediate representation, Eeyore. After that, use Linear Scan Algorithm to allocate registers and generate Tigger codes. Finally, directly generate RISC-Ⅴ assembly from Tigger.
 
