@@ -2,16 +2,12 @@
 #define C_SYMTAB_H
 
 #include <unordered_map>
-#include <string>
-#include <memory>
 #include <vector>
-#include <cstdarg>
+#include "utils.hpp"
 
 #define NEW(x) new x
 #define INT_SIZE 4
 #define GLOBAL_BLOCK 0
-
-using namespace std;
 
 enum DataType {
     datINT, datVOID
@@ -23,15 +19,15 @@ class CSymbolTable;
 
 using CEnVTabPtr = CEntryVarTable*;
 using CEnFTabPtr = CEntryFuncTable*;
-typedef unordered_map<string, CEnVTabPtr> CVarTable;
-typedef unordered_map<string, CEnFTabPtr> CFuncTable;
-typedef vector<CEnVTabPtr> CVarList;
+typedef std::unordered_map<string, CEnVTabPtr> CVarTable;
+typedef std::unordered_map<string, CEnFTabPtr> CFuncTable;
+typedef std::vector<CEnVTabPtr> CVarList;
 
 class CEntryVarTable {
 public:
   string sysy_id_;
-  vector<int> widths_;
-  vector<int> values_;
+  std::vector<int> widths_;
+  std::vector<int> values_;
   bool is_const_;
   bool is_param_;
   bool is_ptr_;
@@ -41,8 +37,8 @@ public:
 
   CEntryVarTable() = default;
   CEntryVarTable(string sysy_id,
-                 vector<int> widths,
-                 vector<int> values,
+                 std::vector<int> widths,
+                 std::vector<int> values,
                  bool is_const,
                  bool is_param,
                  bool is_ptr,
@@ -69,13 +65,13 @@ public:
   int cur_var_cnt_ = 0;
   int cur_param_cnt_ = 0;
   string cur_func_;
-  vector<CVarTable> blk_stack_;
+  std::vector<CVarTable> blk_stack_;
   CFuncTable func_tab_;
 
   CSymbolTable();
   CEnVTabPtr register_var(string sysy_id,
-                          vector<int> widths=vector<int>(),
-                          vector<int> values=vector<int>(),
+                          std::vector<int> widths = std::vector<int>(),
+                          std::vector<int> values = std::vector<int>(),
                           bool is_const = false,
                           bool is_param = false,
                           bool is_ptr = false,
@@ -88,8 +84,5 @@ public:
   void new_blk();
   void delete_blk();
 };
-
-template<typename ... Args>
-string format( const string& format, Args ... args );
 
 #endif

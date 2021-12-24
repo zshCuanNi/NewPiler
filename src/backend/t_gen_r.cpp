@@ -1,133 +1,68 @@
-#include <sstream>
-#include <cassert>
-#include <iostream>
+#include <map>
 #include "newpiler.hpp"
 
 #define RPUSH riscv_codes_.push_back
 
-/* provided by iFreilicht
- * https://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
- */
-template<typename ... Args>
-string format( const string& format, Args ... args )
-{
-    int size_s = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-    auto size = static_cast<size_t>( size_s );
-    auto buf = std::make_unique<char[]>( size );
-    snprintf( buf.get(), size, format.c_str(), args ... );
-    return string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
-
-string add_suffix(const string& text) {
-    int suffix;
-    if (text.length() <= 10)
-        suffix = 10 - text.length();
-    else suffix = ' ';
-    return text + string(suffix, ' ');
-}
-
 bool Newpiler::is_out_of_int12(int int12) {
   if (int12 >= -2048 && int12 < 2048) return false;
-  RPUSH(format("\t%ss0, %d", add_suffix("li").c_str(), int12));
+  RPUSH(format("\t%ss0, %d", add_suffix("li"), int12));
   return true;
 }
 
 /* sw reg2, int12(reg1) */
 void Newpiler::gen_sw(string reg2, int int12, string reg1) {
   if (is_out_of_int12(int12)) {
-    RPUSH(format("\t%ss0, s0, %s", add_suffix("add").c_str(), reg1.c_str()));
-    RPUSH(format("\t%s%s, 0(s0)", add_suffix("sw").c_str(), reg2.c_str()));
-  } else {
-    RPUSH(format("\t%s%s, %d(%s)",
-      add_suffix("sw").c_str(),
-      reg2.c_str(),
-      int12,
-      reg1.c_str()));
-  }
+    RPUSH(format("\t%ss0, s0, %s", add_suffix("add"), reg1));
+    RPUSH(format("\t%s%s, 0(s0)", add_suffix("sw"), reg2));
+  } else
+    RPUSH(format("\t%s%s, %d(%s)", add_suffix("sw"), reg2, int12, reg1));
 }
 
 /* lw reg1, int12(reg2) */
 void Newpiler::gen_lw(string reg1, int int12, string reg2) {
   if (is_out_of_int12(int12)) {
-    RPUSH(format("\t%ss0, s0, %s", add_suffix("add").c_str(), reg2.c_str()));
-    RPUSH(format("\t%s%s, 0(s0)", add_suffix("lw").c_str(), reg1.c_str()));
-  } else {
-    RPUSH(format("\t%s%s, %d(%s)",
-      add_suffix("lw").c_str(),
-      reg1.c_str(),
-      int12,
-      reg2.c_str()));
-  }
+    RPUSH(format("\t%ss0, s0, %s", add_suffix("add"), reg2));
+    RPUSH(format("\t%s%s, 0(s0)", add_suffix("lw"), reg1));
+  } else
+    RPUSH(format("\t%s%s, %d(%s)", add_suffix("lw"), reg1, int12, reg2));
 }
 
 /* addi reg1, reg2, int12 */
 void Newpiler::gen_addi(string reg1, string reg2, int int12) {
   if (is_out_of_int12(int12))
-    RPUSH(format("\t%s%s, %s, s0",
-      add_suffix("add").c_str(),
-      reg1.c_str(),
-      reg2.c_str()));
+    RPUSH(format("\t%s%s, %s, s0", add_suffix("add"), reg1, reg2));
   else
-    RPUSH(format("\t%s%s, %s, %d",
-      add_suffix("addi").c_str(),
-      reg1.c_str(),
-      reg2.c_str(),
-      int12));
+    RPUSH(format("\t%s%s, %s, %d", add_suffix("addi"), reg1, reg2, int12));
 }
 
 /* slti reg1, reg2, int12 */
 void Newpiler::gen_slti(string reg1, string reg2, int int12) {
   if (is_out_of_int12(int12))
-    RPUSH(format("\t%s%s, %s, s0",
-      add_suffix("slt").c_str(),
-      reg1.c_str(),
-      reg2.c_str()));
+    RPUSH(format("\t%s%s, %s, s0", add_suffix("slt"), reg1, reg2));
   else
-    RPUSH(format("\t%s%s, %s, %d",
-      add_suffix("slti").c_str(),
-      reg1.c_str(),
-      reg2.c_str(),
-      int12));
+    RPUSH(format("\t%s%s, %s, %d", add_suffix("slti"), reg1, reg2, int12));
 }
 
 /* reg1 = reg2 bop reg3 => bop_instr reg1, reg2, reg3 ... */
 void Newpiler::gen_binop(string bop, string reg1, string reg2, string reg3) {
   if (bop == "&&") {
-    RPUSH(format("\t%s%s, %s",
-      add_suffix("snez").c_str(),
-      reg1.c_str(),
-      reg2.c_str()));
-    RPUSH(format("\t%ss0, %s",
-      add_suffix("snez").c_str(),
-      reg3.c_str()));
-    RPUSH(format("\t%s%s, %s, s0",
-      add_suffix("and").c_str(),
-      reg1.c_str(),
-      reg1.c_str()));
+    RPUSH(format("\t%s%s, %s", add_suffix("snez"), reg1, reg2));
+    RPUSH(format("\t%ss0, %s", add_suffix("snez"), reg3));
+    RPUSH(format("\t%s%s, %s, s0", add_suffix("and"), reg1, reg1));
     return;
   }
 
-  map<string, string> op2instr = {
+  std::map<string, string> op2instr = {
     {"+", "add"}, {"-", "sub"}, {"*", "mul"}, {"/", "div"}, {"%", "rem"},
     {"<", "slt"}, {">", "sgt"}, {"<=", "sgt"}, {">=", "slt"},
     {"||", "or"}, {"!=", "xor"}, {"==", "xor"}
   };
-  RPUSH(format("\t%s%s, %s, %s",
-      add_suffix(op2instr[bop]).c_str(),
-      reg1.c_str(),
-      reg2.c_str(),
-      reg3.c_str()));
+  RPUSH(format("\t%s%s, %s, %s", add_suffix(op2instr[bop]), reg1, reg2, reg3));
   
   if (bop == "<=" || bop == ">=" || bop == "==")
-    RPUSH(format("\t%s%s, %s",
-      add_suffix("seqz").c_str(),
-      reg1.c_str(),
-      reg1.c_str()));
+    RPUSH(format("\t%s%s, %s", add_suffix("seqz"), reg1, reg1));
   if (bop == "||" || bop == "!=")
-    RPUSH(format("\t%s%s, %s",
-      add_suffix("snez").c_str(),
-      reg1.c_str(),
-      reg1.c_str()));
+    RPUSH(format("\t%s%s, %s", add_suffix("snez"), reg1, reg1));
 }
 
 bool is_power_of_2(int x) { return (x & (x - 1)) == 0; }
@@ -138,7 +73,7 @@ void Newpiler::parse_compile_tigger() {
   for (string& code_line: tigger_codes_) {
     if (code_line.empty()) continue;
 
-    stringstream line_in(code_line);
+    std::stringstream line_in(code_line);
     string line_head;
 
     line_in >> line_head;
@@ -153,10 +88,7 @@ void Newpiler::parse_compile_tigger() {
       // vk = malloc NUM
         string m_str;
         line_in >> m_str >> int_val;
-        RPUSH(format("\t%s%s, %d, 4",
-          add_suffix(".comm").c_str(),
-          var.c_str(),
-          int_val));
+        RPUSH(format("\t%s%s, %d, 4", add_suffix(".comm"), var, int_val));
       } else {
       // vk = NUM
         line_in >> int_val;
@@ -166,7 +98,7 @@ void Newpiler::parse_compile_tigger() {
         RPUSH("\t" + add_suffix(".type") + var + ", @object");
         RPUSH("\t" + add_suffix(".size") + var + ", 4");
         RPUSH(var + ":");
-        RPUSH(format("\t%s%d", add_suffix(".word").c_str(), int_val));
+        RPUSH(format("\t%s%d", add_suffix(".word"), int_val));
       }
     } else
     // f_func [NUM] [NUM]
@@ -189,24 +121,21 @@ void Newpiler::parse_compile_tigger() {
       string func;
       line_in >> func;
       func = func.substr(2, func.length());
-      RPUSH(format("\t%s%s, .-%s",
-        add_suffix(".size").c_str(),
-        func.c_str(),
-        func.c_str()));
+      RPUSH(format("\t%s%s, .-%s", add_suffix(".size"), func, func));
     } else
     // if Reg LOGICOP Reg goto ld
     if (start_with(line_head, "if")) {
       string reg1, lop, reg2, goto_str, label;
       line_in >> reg1 >> lop >> reg2 >> goto_str >> label;
-      map<string, string> op2instr = {
+      std::map<string, string> op2instr = {
         {"<", "blt"}, {">", "bgt"}, {"<=", "ble"},
         {">=", "bge"}, {"!=", "bne"}, {"==", "beq"}
       };
       RPUSH(format("\t%s%s, %s, .%s",
-        add_suffix(op2instr[lop]).c_str(),
-        reg1.c_str(),
-        reg2.c_str(),
-        label.c_str()));
+                    add_suffix(op2instr[lop]),
+                    reg1,
+                    reg2,
+                    label));
     } else
     // goto ld
     if (start_with(line_head, "goto")) {
@@ -221,10 +150,7 @@ void Newpiler::parse_compile_tigger() {
       // loadaddr vk Reg
         string var;
         line_in >> var >> reg;
-        RPUSH(format("\t%s%s, %s",
-          add_suffix("la").c_str(),
-          reg.c_str(),
-          var.c_str()));
+        RPUSH(format("\t%s%s, %s", add_suffix("la"), reg, var));
       } else {
       // loadaddr NUM Reg
         int int10;
@@ -239,15 +165,8 @@ void Newpiler::parse_compile_tigger() {
       // load vk Reg
         string var;
         line_in >> var >> reg;
-        RPUSH(format("\t%s%s, %%hi(%s)",
-          add_suffix("lui").c_str(),
-          reg.c_str(),
-          var.c_str()));
-        RPUSH(format("\t%s%s, %%lo(%s)(%s)",
-          add_suffix("lw").c_str(),
-          reg.c_str(),
-          var.c_str(),
-          reg.c_str()));
+        RPUSH(format("\t%s%s, %%hi(%s)", add_suffix("lui"), reg, var));
+        RPUSH(format("\t%s%s, %%lo(%s)(%s)", add_suffix("lw"), reg, var, reg));
       } else {
       // load NUM Reg
         int int10;
@@ -312,10 +231,10 @@ void Newpiler::parse_compile_tigger() {
             // muli instr should be replaced by li(0) | mv(1) | slli(2^k)
             // in Strength Reduction
               RPUSH(format("\t%s%s, %s, %d",
-                add_suffix("muli").c_str(),
-                reg1.c_str(),
-                c0.c_str(),
-                int12));
+                            add_suffix("muli"),
+                            reg1,
+                            c0,
+                            int12));
             }  else if (c1 == "/" && is_power_of_2(int12)) {
             // optimiation: Reg1 = Reg2 / (1|2|4|...) ==> divi Reg1, Reg2, (1|2|4|...)
             // divi instr should be replaced by
@@ -324,10 +243,10 @@ void Newpiler::parse_compile_tigger() {
             // (2^k) & Reg2 == s0: srli Reg1, s0, 31; add s0, Reg1, s0; sra Reg1, s0, k
             // in Strength Reduction
               RPUSH(format("\t%s%s, %s, %d",
-                add_suffix("divi").c_str(),
-                reg1.c_str(),
-                c0.c_str(),
-                int12));
+                            add_suffix("divi"),
+                            reg1,
+                            c0,
+                            int12));
             } else if (c1 == "%" && (int12 == 2 || int12 == 1)) {
             // optimiation: Reg1 = Reg2 / 2 ==> remi Reg1, Reg2, 2
             // this instr should be replaced by
@@ -335,12 +254,12 @@ void Newpiler::parse_compile_tigger() {
             // Reg2 == s0: srli Reg1, s0, 31; add Reg1, Reg1, s0
             // in Strength Reduction
               RPUSH(format("\t%s%s, %s, %d",
-                add_suffix("remi").c_str(),
-                reg1.c_str(),
-                c0.c_str(),
-                int12));
+                            add_suffix("remi"),
+                            reg1,
+                            c0,
+                            int12));
             } else {
-              RPUSH(format("\t%ss0, %d", add_suffix("li").c_str(), int12));
+              RPUSH(format("\t%ss0, %d", add_suffix("li"), int12));
               gen_binop(c1, reg1, c0, "s0");
             }
           } else {
@@ -349,11 +268,8 @@ void Newpiler::parse_compile_tigger() {
           }
         } else if (!c1.empty()) {
         // Reg = OP Reg
-          map<string, string> op2instr = {{"-", "neg"}, {"!", "seqz"}};
-          RPUSH(format("\t%s%s, %s",
-            add_suffix(op2instr[c0]).c_str(),
-            reg1.c_str(),
-            c1.c_str()));
+          std::map<string, string> op2instr = {{"-", "neg"}, {"!", "seqz"}};
+          RPUSH(format("\t%s%s, %s", add_suffix(op2instr[c0]), reg1, c1));
         } else if (c0.find('[') != c0.npos) {
         // Reg = Reg[NUM]
           int l_bra = c0.find('[');
@@ -366,19 +282,12 @@ void Newpiler::parse_compile_tigger() {
           gen_lw(reg1, index, reg2);
         } else {
         // Reg = Reg/NUM
-          if (is_digit(c0[0]) || c0[0] == '-') {
+          if (is_digit(c0[0]) || c0[0] == '-')
           // Reg = NUM
-            RPUSH(format("\t%s%s, %s",
-              add_suffix("li").c_str(),
-              reg1.c_str(),
-              c0.c_str()));
-          } else {
+            RPUSH(format("\t%s%s, %s", add_suffix("li"), reg1, c0));
+          else
           // Reg = Reg
-            RPUSH(format("\t%s%s, %s",
-              add_suffix("mv").c_str(),
-              reg1.c_str(),
-              c0.c_str()));
-          }
+            RPUSH(format("\t%s%s, %s", add_suffix("mv"), reg1, c0));
         }
       }
     }

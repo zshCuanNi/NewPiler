@@ -39,7 +39,7 @@ using EAsnPtr = EAssign*;
 using ERetPtr = EReturn*;
 using EGotoPtr = EGoto*;
 using EIfPtr = EIf*;
-typedef vector<EExprPtr> EExprPtrList;
+typedef std::vector<EExprPtr> EExprPtrList;
 
 enum LineType { lASN, lGOTO, lIF, lCALL, lRET, lEXPR };
 enum EExprType { eeNUM, eeSB, eeCALL, eeOP, eeARR };
@@ -47,7 +47,7 @@ enum EExprType { eeNUM, eeSB, eeCALL, eeOP, eeARR };
 class ENode {
 public:
   bool is_entry_ = false, is_exit_ = false;
-  vector<int> labels_ = vector<int>();
+  std::vector<int> labels_ = std::vector<int>();
   
   LineType line_type_;
   int lineno_;

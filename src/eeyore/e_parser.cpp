@@ -1,28 +1,4 @@
-#include <sstream>
-#include <cassert>
 #include "newpiler.hpp"
-
-inline bool start_with(string str, string head) {
-  return str.compare(0, head.size(), head) == 0;
-}
-
-inline bool is_digit(char c) {
-  return c >= '0' && c <= '9';
-}
-
-inline char get_useful_peek(stringstream& sstr) {
-  char ch;
-  for (ch = sstr.peek(); ch == ' ' || ch == '\t'; ch = sstr.peek())
-    sstr.get();
-  return ch;
-}
-
-inline int get_unsigned_int(stringstream& sstr) {
-  while (!is_digit(sstr.peek())) sstr.get();
-  int ret_int;
-  sstr >> ret_int;
-  return ret_int;
-}
 
 void Newpiler::parse_eeyore() {
   assert(!eeyore_codes_.empty());
@@ -39,7 +15,7 @@ void Newpiler::parse_eeyore() {
 }
 
 void Newpiler::parse_eeyore_line(string code_line, int lineno) {
-  stringstream line_in(code_line);
+  std::stringstream line_in(code_line);
   ENodePtr stmt=nullptr;
   string line_head;
 
@@ -97,7 +73,7 @@ void Newpiler::parse_eeyore_line(string code_line, int lineno) {
   if (start_with(line_head, "call")) {
     string func_id;
     line_in >> func_id;
-    stringstream sstr("call " + func_id);
+    std::stringstream sstr("call " + func_id);
     stmt = parse_eeyore_expr(sstr);
   } else
   // return (RVal)
@@ -150,11 +126,11 @@ EExprPtr Newpiler::parse_eeyore_rval(string rval) {
 }
 
 EExprPtr Newpiler::parse_eeyore_expr(string str) {
-  stringstream sstr(str);
+  std::stringstream sstr(str);
   return parse_eeyore_expr(sstr);
 }
 
-EExprPtr Newpiler::parse_eeyore_expr(stringstream& sstr) {
+EExprPtr Newpiler::parse_eeyore_expr(std::stringstream& sstr) {
   EExprPtr ret_node;
   string c0, c1, c2;
   sstr >> c0 >> c1 >> c2;

@@ -1,4 +1,3 @@
-#include <cassert>
 #include <queue>
 #include "newpiler.hpp"
 
@@ -61,7 +60,7 @@ void Newpiler::gen_control_flow_graph() {
     }
     // third traversal, create blocks and a mapping from node to block
     int blk_cnt = 0;
-    unordered_map<ENodePtr, EBBlkPtr> node_to_blk;
+    std::unordered_map<ENodePtr, EBBlkPtr> node_to_blk;
     for (auto stmt: func->stmts_)
       if (stmt->is_entry_) {
         node_to_blk[stmt] = NEW(EBasicBlock)(blk_cnt++);
@@ -244,7 +243,7 @@ void set_def_use(ENodePtr stmt, EExprPtr expr, bool is_def = false) {
  */
 void Newpiler::liveness_analysis() {
   for (auto func_id: e_sym_tab->func_ids_) {
-    deque<ENodePtr> work_list;
+    std::deque<ENodePtr> work_list;
     if (func_id == "global") continue;
     // calculate def and use for every node in advance
     auto func = e_sym_tab->find_func(func_id);
@@ -275,7 +274,7 @@ void Newpiler::liveness_analysis() {
     while (!work_list.empty()) {
       auto cur_stmt = work_list.front();
       work_list.pop_front();
-      VarSet old_in = move(cur_stmt->live_in_);
+      VarSet old_in = std::move(cur_stmt->live_in_);
       for (auto succ: cur_stmt->succs_)
         for (auto in_var: succ->live_in_)
           cur_stmt->live_out_.insert(in_var);

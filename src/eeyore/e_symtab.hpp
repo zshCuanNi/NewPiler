@@ -1,11 +1,9 @@
 #ifndef E_SYMTAB_H
 #define E_SYMTAB_H
 
-#include <list>
 #include <unordered_set>
 #include <set>
-#include <map>
-#include "c_symtab.hpp"
+#include "c_ast.hpp"
 
 class EBasicBlock;
 class EEntryVarTable;
@@ -16,13 +14,13 @@ class ENode;
 using EBBlkPtr = EBasicBlock*;
 using EEnVTabPtr = EEntryVarTable*;
 using EEnFTabPtr = EEntryFuncTable*;
-typedef unordered_map<string, EEnVTabPtr> EVarTable;
-typedef unordered_map<string, EEnFTabPtr> EFuncTable;
-typedef vector<ENode*> EStmtList;
-typedef unordered_set<string> VarSet;
-typedef vector<EBBlkPtr> BlockList;
-typedef unordered_map<string,string> VarRegMap;
-typedef unordered_map<string, int> VarStackMap;
+typedef std::unordered_map<string, EEnVTabPtr> EVarTable;
+typedef std::unordered_map<string, EEnFTabPtr> EFuncTable;
+typedef std::vector<ENode*> EStmtList;
+typedef std::unordered_set<string> VarSet;
+typedef std::vector<EBBlkPtr> BlockList;
+typedef std::unordered_map<string,string> VarRegMap;
+typedef std::unordered_map<string, int> VarStackMap;
 using RegVarMap = VarRegMap;
 using RegStackMap = VarStackMap;
 
@@ -78,13 +76,13 @@ public:
   int param_num_;
   EStmtList stmts_;
   EVarTable locals_;
-  unordered_map<int, ENode*> label_to_node_;
+  std::unordered_map<int, ENode*> label_to_node_;
   BlockList blocks_;
-  set<LiveInterval, CmpStart> live_intervals_;
+  std::set<LiveInterval, CmpStart> live_intervals_;
   VarRegMap var2reg;
   VarStackMap var2stack;
   RegStackMap reg2stack;
-  set<string> used_regs;
+  std::set<string> used_regs;
   int stack_size_;
 
   EEntryFuncTable() = default;
@@ -99,7 +97,7 @@ public:
     int global_cnt_ = 0;
     string cur_func_;
     EFuncTable func_tab_;
-    vector<string> func_ids_;
+    std::vector<string> func_ids_;
 
     ESymbolTable();
     void register_var(string eeyore_id,

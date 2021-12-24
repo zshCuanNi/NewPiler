@@ -1,8 +1,9 @@
 #include "c_ast.hpp"
-#include <cassert>
 #include <unistd.h>
 
-extern CSymbolTable* C_sym_tab;
+#define D_CAST(x) dynamic_cast<x>
+
+extern CSymbolTable* c_sym_tab;
 int temp_cnt;
 int fall_label=0;
 int while_start_label=0;
@@ -13,37 +14,6 @@ static const string op_str[] =
     "+", "-", "!" };
 
 inline int new_label() { return label_cnt++; }
-
-/* implemented by LianYueBiao, but only supported by Microsoft
- * https://blog.csdn.net/alvinlyb/article/details/90039254
- */
-// static string format(const char* pszFmt, ...) {
-// 	string str;
-// 	va_list args;
-// 	va_start(args, pszFmt);
-// 	{
-// 		int nLength = _vscprintf(pszFmt, args); MS version
-// 		nLength += 1;
-// 		vector<char> vectorChars(nLength);
-// 		_vsnprintf(vectorChars.data(), nLength, pszFmt, args); MS version
-// 		str.assign(vectorChars.data());
-// 	}
-// 	va_end(args);
-// 	return str;
-// }
-
-/* provided by iFreilicht
- * https://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
- */
-template<typename ... Args>
-string format( const string& format, Args ... args )
-{
-    int size_s = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-    auto size = static_cast<size_t>( size_s );
-    auto buf = std::make_unique<char[]>( size );
-    snprintf( buf.get(), size, format.c_str(), args ... );
-    return string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
 
 void CNode::code_gen() {}
 
@@ -72,7 +42,7 @@ void CVarDecl::set_widths() {
 /* helper but not member function,
  * actually dealing with params widths and first_value
  */
-CExprPtrList CVarDecl::set_values(vector<int> widths,
+CExprPtrList CVarDecl::set_values(std::vector<int> widths,
                                   CExprPtr first_value,
                                   int filled) {
   CExprPtrList ret;
@@ -92,7 +62,7 @@ CExprPtrList CVarDecl::set_values(vector<int> widths,
   while (cur_node) {
     if (cur_node->expr_type_ == eINIT) {
     // non-leaf node
-      vector<int> child_widths = vector<int>(widths.begin()+1, widths.end());
+      std::vector<int> child_widths = std::vector<int>(widths.begin()+1, widths.end());
       int child_to_fill = to_fill / widths[0];
       int child_filled = filled % child_to_fill;
       CExprPtrList child_values = set_values(
@@ -125,15 +95,10 @@ CExprPtrList CVarDecl::set_values(vector<int> widths,
 static string gen_var_decl(CEnVTabPtr entry, bool is_indent) {
   string indent = is_indent? "\t": "";
   if (!entry->is_arr_)
-    return format("%svar %s",
-                   indent.c_str(),
-                   entry->eeyore_id_.c_str());
+    return format("%svar %s", indent, entry->eeyore_id_);
   int sz = INT_SIZE;
   for (int width: entry->widths_) sz *= width;
-  return format("%svar %d %s",
-                 indent.c_str(),
-                 sz, 
-                 entry->eeyore_id_.c_str());
+  return format("%svar %d %s", indent, sz, entry->eeyore_id_);
 }
 
 void CVarDecl::gen_local_var_init(CEnVTabPtr entry) {
@@ -141,15 +106,15 @@ void CVarDecl::gen_local_var_init(CEnVTabPtr entry) {
     for (int index = 0; index < (int)values_.size(); ++index) {
       codes_.splice(codes_.end(), values_[index]->codes_);
       codes_.push_back(format("\t%s[%d] = %s",
-                              entry->eeyore_id_.c_str(),
+                              entry->eeyore_id_,
                               index * INT_SIZE,
-                              values_[index]->eeyore_id_.c_str()));
+                              values_[index]->eeyore_id_));
     }
   else {
     codes_.splice(codes_.end(), values_[0]->codes_);
     codes_.push_back(format("\t%s = %s",
-                            entry->eeyore_id_.c_str(),
-                            values_[0]->eeyore_id_.c_str()));
+                            entry->eeyore_id_,
+                            values_[0]->eeyore_id_));
   }
 }
 
@@ -163,11 +128,11 @@ void CVarDecl::code_gen() {
   }
 
   // register variable in symbol table
-  vector<int> c_values;
+  std::vector<int> c_values;
   for (CExprPtr value: values_) c_values.push_back(value->val_);
   // set 0 for implicitly initialized vars (useful for global vars)
   c_values.insert(c_values.end(), size_ - values_.size(), 0);
-  CEnVTabPtr entry = C_sym_tab->register_var(
+  CEnVTabPtr entry = c_sym_tab->register_var(
       id_, widths_, c_values, is_const_,
       is_param_, is_ptr_, is_arr_, false);
 
@@ -175,12 +140,12 @@ void CVarDecl::code_gen() {
   if (is_param_) return;
   
   // declare global variables
-  if (C_sym_tab->blk_id_ == GLOBAL_BLOCK) {
+  if (c_sym_tab->blk_id_ == GLOBAL_BLOCK) {
       codes_.push_back(gen_var_decl(entry, false));
       // initialize non-array global variables in global scope
       if (!is_arr_) 
         codes_.push_back(format("%s = %d",
-                                entry->eeyore_id_.c_str(),
+                                entry->eeyore_id_,
                                 entry->values_[0]));
       return;
   }
@@ -204,9 +169,9 @@ void CFuncDef::code_gen() {
     func_body_->item_list_.push_back(man_made_ret);
   
   // register function in symbol table
-  CEnFTabPtr entry = C_sym_tab->register_func(ret_type_, id_);
+  CEnFTabPtr entry = c_sym_tab->register_func(ret_type_, id_);
   
-  C_sym_tab->new_blk();
+  c_sym_tab->new_blk();
   // fisrt do registration and code generation of parameters
   for (CVarDPtr param: params_)
     param->code_gen();
@@ -215,7 +180,7 @@ void CFuncDef::code_gen() {
 
   // function header
   codes_.push_back(format("%s [%d]",
-                          entry->eeyore_id_.c_str(),
+                          entry->eeyore_id_,
                           entry->params_.size()));
   // declare local variables
   for (CEnVTabPtr var: entry->locals_)
@@ -224,36 +189,36 @@ void CFuncDef::code_gen() {
       codes_.push_back(gen_var_decl(var, true));
   // initialize global arrays at the beginning of main()
   if (id_ == "main")
-    for (auto& id_var_pair: C_sym_tab->blk_stack_[GLOBAL_BLOCK]) {
+    for (auto& id_var_pair: c_sym_tab->blk_stack_[GLOBAL_BLOCK]) {
       CEnVTabPtr var = id_var_pair.second;
       if (var->is_arr_)
         for (int index = 0; index < (int)var->values_.size(); ++index)
           if (var->values_[index])
           // zero elements will be referenced directly
             codes_.push_back(format("\t%s[%d] = %d",
-                                    var->eeyore_id_.c_str(),
+                                    var->eeyore_id_,
                                     index * INT_SIZE,
                                     var->values_[index]));
     }
   // add the main function body
   codes_.splice(codes_.end(), func_body_->codes_);
   // function tail
-  codes_.push_back(format("end %s", entry->eeyore_id_.c_str()));
+  codes_.push_back(format("end %s", entry->eeyore_id_));
   codes_.push_back("");
-  C_sym_tab->delete_blk();
+  c_sym_tab->delete_blk();
 }
 
 void CBlock::code_gen() {
   if (item_list_.empty()) return;
   // block will be created in FuncDef if the block is a function body
   if (!is_func_body_)
-    C_sym_tab->new_blk();
+    c_sym_tab->new_blk();
   for (CNodePtr item: item_list_)
     item->code_gen();
   for (CNodePtr item: item_list_)
     codes_.splice(codes_.end(), item->codes_);
   if (!is_func_body_)
-    C_sym_tab->delete_blk();
+    c_sym_tab->delete_blk();
 }
 
 void CAssignStmt::code_gen() {
@@ -264,8 +229,8 @@ void CAssignStmt::code_gen() {
   codes_.splice(codes_.end(), rhs_expr_->codes_);
   codes_.splice(codes_.end(), lhs_var_->codes_);
   codes_.push_back(format("\t%s = %s",
-                          lhs_var_->eeyore_id_.c_str(),
-                          rhs_expr_->eeyore_id_.c_str()));
+                          lhs_var_->eeyore_id_,
+                          rhs_expr_->eeyore_id_));
 }
 
 void CBlockStmt::code_gen() {
@@ -278,10 +243,10 @@ void CExprStmt::code_gen() {
   if (expr_->expr_type_ != eCALL) return;
   // find this function in function table and get its ret_type
   CCallExpr* func_call = (CCallExpr*) expr_;
-  CEnFTabPtr entry = C_sym_tab->find_func(func_call->func_name_);
+  CEnFTabPtr entry = c_sym_tab->find_func(func_call->func_name_);
   if (entry->ret_type_ == datVOID) {
     codes_.splice(codes_.end(), func_call->codes_);
-    codes_.push_back(format("\t%s", func_call->eeyore_id_.c_str()));
+    codes_.push_back(format("\t%s", func_call->eeyore_id_));
   } else {
     func_call->gen_temp();
     codes_.splice(codes_.end(), func_call->codes_);
@@ -364,7 +329,7 @@ void CRetStmt::code_gen() {
   ret_val_->gen_temp();
 
   codes_.splice(codes_.end(), ret_val_->codes_);
-  codes_.push_back(format("\treturn %s", ret_val_->eeyore_id_.c_str()));
+  codes_.push_back(format("\treturn %s", ret_val_->eeyore_id_));
 }
 
 void CExpr::const_fold() {
@@ -372,13 +337,13 @@ void CExpr::const_fold() {
 
   switch (expr_type_) {
     case eNUM:
-      eeyore_id_ = to_string(val_); break;
+      eeyore_id_ = format("%d", val_); break;
     case eVAR: {
-      CEnVTabPtr entry = C_sym_tab->find_var(sysy_id_);
+      CEnVTabPtr entry = c_sym_tab->find_var(sysy_id_);
       eeyore_id_ = entry->eeyore_id_;
       if (entry->is_const_ && entry->widths_.empty()) {
         expr_type_ = eNUM;
-        eeyore_id_ = to_string(entry->values_[0]);
+        eeyore_id_ = format("%d", entry->values_[0]);
       }
       break;
     }
@@ -390,14 +355,12 @@ void CExpr::const_fold() {
 
 void CExpr::gen_temp() {
   if (has_temped_ || expr_type_ == eNUM || expr_type_ == eVAR) return;
-  codes_.push_back(format("\tt%d = %s",
-                          temp_cnt,
-                          eeyore_id_.c_str()));
+  codes_.push_back(format("\tt%d = %s", temp_cnt, eeyore_id_));
   // #t is prefix of sysy_id for temped expressions
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
   // register this temp variable
-  C_sym_tab->register_var(sysy_id_);
+  c_sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
 
@@ -426,7 +389,7 @@ static CExprPtr index_unfold(const CExprPtrList index,
 void CLValExpr::const_fold() {
   if (has_folded_) return;
 
-  CEnVTabPtr entry = C_sym_tab->find_var(lval_name_);
+  CEnVTabPtr entry = c_sym_tab->find_var(lval_name_);
   if (entry->is_arr_) {
   // set indexes for array
     CExprPtr cur_node = first_dim_index_;
@@ -445,7 +408,7 @@ void CLValExpr::const_fold() {
       if (entry->is_const_) {
         expr_type_ = eNUM;
         val_ = entry->values_[0];
-        eeyore_id_ = to_string(val_);
+        eeyore_id_ = format("%d", val_);
       } else 
         eeyore_id_ = entry->eeyore_id_;
       break;
@@ -529,19 +492,19 @@ void CArithExpr::const_fold() {
         default: break;
       }
       expr_type_ = eNUM;
-      eeyore_id_ = to_string(val_);
+      eeyore_id_ = format("%d", val_);
     } else {
     // expicitly generate code for non-constants
       assert(op_type_ == opLOAD || int(op_type_) <= 10);
       if (int(op_type_) <= 10 && int(op_type_) >= 0)
         eeyore_id_ = format("%s %s %s",
-                            lhs_expr_->eeyore_id_.c_str(),
-                            op_str[int(op_type_)].c_str(),
-                            rhs_expr_->eeyore_id_.c_str());
+                            lhs_expr_->eeyore_id_,
+                            op_str[int(op_type_)],
+                            rhs_expr_->eeyore_id_);
       if (op_type_ == opLOAD)
         eeyore_id_ = format("%s[%s]",
-                            lhs_expr_->eeyore_id_.c_str(),
-                            rhs_expr_->eeyore_id_.c_str());
+                            lhs_expr_->eeyore_id_,
+                            rhs_expr_->eeyore_id_);
       codes_.splice(codes_.end(), lhs_expr_->codes_);
       codes_.splice(codes_.end(), rhs_expr_->codes_);
     }
@@ -560,15 +523,15 @@ void CArithExpr::const_fold() {
         default: break;
       }
       expr_type_ = eNUM;
-      eeyore_id_ = to_string(val_);
+      eeyore_id_ = format("%d", val_);
     } else {
     // expicitly generate code for non-constants
     // seperate unop and var with space on purpose
     // when parsing eeyore to ast, unop and var will be seperatley dealt with
       assert(int(op_type_) >= 11 && int(op_type_) <= 13);
       eeyore_id_ = format("%s %s",
-                          op_str[int(op_type_)].c_str(),
-                          lhs_expr_->eeyore_id_.c_str());
+                          op_str[int(op_type_)],
+                          lhs_expr_->eeyore_id_);
       codes_.splice(codes_.end(), lhs_expr_->codes_);
     }
   }
@@ -588,20 +551,20 @@ void CCallExpr::const_fold() {
     codes_.splice(codes_.end(), param->codes_);
   // call the function
   for (CExprPtr param: params_)
-    codes_.push_back(format("\tparam %s", param->eeyore_id_.c_str()));
-  eeyore_id_ = format("call f_%s", func_name_.c_str());
+    codes_.push_back(format("\tparam %s", param->eeyore_id_));
+  eeyore_id_ = format("call f_%s", func_name_);
 
   has_folded_ = true;
 }
 
 void CCallExpr::gen_temp() {
   if (has_temped_ || expr_type_ == eNUM || expr_type_ == eVAR) return;
-  codes_.push_back(format("\tt%d = %s", temp_cnt, eeyore_id_.c_str()));
+  codes_.push_back(format("\tt%d = %s", temp_cnt, eeyore_id_));
   // #t is prefix of sysy_id for temped expressions
   sysy_id_ = format("#t%d", temp_cnt);
   eeyore_id_ = format("t%d", temp_cnt++);
   // register this temp variable
-  C_sym_tab->register_var(sysy_id_);
+  c_sym_tab->register_var(sysy_id_);
   has_temped_ = true;
 }
 
@@ -615,11 +578,11 @@ void CCondExpr::traverse() {
     // labels have been set before calling travverse()
     if (false_label_ != fall_label)
       codes_.push_back(format("\tif %s == 0 goto l%d",
-                              lhs_expr_->eeyore_id_.c_str(),
+                              lhs_expr_->eeyore_id_,
                               false_label_));
     else if (true_label_ != fall_label)
       codes_.push_back(format("\tif %s != 0 goto l%d",
-                              lhs_expr_->eeyore_id_.c_str(),
+                              lhs_expr_->eeyore_id_,
                               true_label_));
   } else {
   // binary op, traverse both side of expressions

@@ -4,8 +4,6 @@
 #include <list>
 #include "c_symtab.hpp"
 
-#define D_CAST(x) dynamic_cast<x>
-
 enum OpType {
   opADD, opSUB, opMUL, opDIV, opMOD,
   opGE, opLE, opGEQ, opLEQ, opEQ, opNEQ,
@@ -46,10 +44,10 @@ using CBlkPtr = CBlock*;
 using CExprPtr = CExpr*;
 using CStmtPtr = CStmt*;
 using CCondPtr = CCondExpr*;
-typedef vector<CNodePtr> CNodePtrList;
-typedef vector<CVarDPtr> CVarDPtrList;
-typedef vector<CExprPtr> CExprPtrList;
-typedef list<string> CodeList;
+typedef std::vector<CNodePtr> CNodePtrList;
+typedef std::vector<CVarDPtr> CVarDPtrList;
+typedef std::vector<CExprPtr> CExprPtrList;
+typedef std::list<string> CodeList;
 
 class CNode {
 public:
@@ -94,7 +92,7 @@ public:
   bool is_ptr_;
   bool is_arr_;
   int size_;
-  vector<int> widths_;
+  std::vector<int> widths_;
   CExprPtrList values_;
   
   CVarDecl(string id,
@@ -104,7 +102,7 @@ public:
            bool is_param = false,
            bool is_ptr = false);
   void set_widths();
-  CExprPtrList set_values(vector<int> widths,
+  CExprPtrList set_values(std::vector<int> widths,
                           CExprPtr first_value,
                           int filled=0);
   void gen_local_var_init(CEnVTabPtr entry);

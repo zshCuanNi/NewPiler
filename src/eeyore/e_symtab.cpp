@@ -1,4 +1,3 @@
-#include <cassert>
 #include "e_symtab.hpp"
 
 EEntryVarTable::EEntryVarTable(string eeyore_id,
@@ -29,7 +28,7 @@ void ESymbolTable::register_var(string eeyore_id,
   EEnVTabPtr new_var = NEW(EEntryVarTable)(eeyore_id, is_arr, width);
   if (cur_func_ == "global") {
     new_var->is_global_ = true;
-    new_var->tigger_id_ = "v" + to_string(global_cnt_++);
+    new_var->tigger_id_ = format("v%d", global_cnt_++);
   }
 
   func_tab_[cur_func_]->locals_[eeyore_id] = new_var;

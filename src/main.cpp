@@ -5,8 +5,8 @@
 
 extern FILE* yyin;
 FILE* f_log; // may not be used
-CBlkPtr C_AST_Root;
-CSymbolTable* C_sym_tab;
+CBlkPtr c_ast_root;
+CSymbolTable* c_sym_tab;
 
 int yyparse();
 
@@ -49,13 +49,13 @@ int main(int argc, char** argv) {
   FILE* f_out = fopen(out_name.c_str(), "w");
   assert(f_out);
 
-  C_sym_tab = NEW(CSymbolTable)();
+  c_sym_tab = NEW(CSymbolTable)();
   do {
     yyparse();
   } while (!feof(yyin));
 
-  C_AST_Root->code_gen();
-  Newpiler new_piler = Newpiler(f_out, C_AST_Root->codes_, f_log);
+  c_ast_root->code_gen();
+  Newpiler new_piler = Newpiler(f_out,c_ast_root->codes_, f_log);
   // new_piler.print_eeyore_codes();
   new_piler.parse_eeyore();
   new_piler.gen_control_flow_graph();

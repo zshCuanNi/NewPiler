@@ -1,6 +1,3 @@
-#include <cassert>
-#include <cstdlib>
-#include <ctime>
 #include "newpiler.hpp"
 
 /* Calcaulate live intervals for locals and params, not including globals.
@@ -70,16 +67,16 @@ struct CmpEnd {
  * a7 is preferred than a0 because the latter is more dangerous when
  * dealing with return value of a function and in param passing process.
  */
-string get_free_reg(set<string>& free_regs, bool is_prefer_callee = true) {
+string get_free_reg(std::set<string>& free_regs, bool is_prefer_callee = true) {
   int callee_no = -1, caller_no = -1, param_no = -1;
   for (auto free_reg: free_regs) {
     switch (free_reg[0]) {
       case 's':
-        callee_no = max(callee_no, stoi(free_reg.substr(1, 2))); break;
+        callee_no = std::max(callee_no, stoi(free_reg.substr(1, 2))); break;
       case 't':
-        caller_no = max(caller_no, stoi(free_reg.substr(1, 2))); break;
+        caller_no = std::max(caller_no, stoi(free_reg.substr(1, 2))); break;
       case 'a':
-        param_no = max(param_no, stoi(free_reg.substr(1, 2))); break;
+        param_no = std::max(param_no, stoi(free_reg.substr(1, 2))); break;
       default: assert(false);
     }
   }
@@ -102,7 +99,6 @@ void alloc_stack_pos(EVarTable& vars,
                      VarStackMap& var2stack,
                      string var_id,
                      int& stk_sz) {
-  // printf("stack %s -> %d\n", var_id.c_str(), stk_sz);
   if (is_param(var_id))
     var2stack[var_id] = stk_sz++;
   else {
@@ -114,8 +110,6 @@ void alloc_stack_pos(EVarTable& vars,
       var2stack[var_id] = stk_sz++;
   }
 }
-
-bool is_param(string var_id) { return start_with(var_id, "p"); }
 
 /* scan the whole function linearlly and allocate registers
  * implementation details refer to the paper:
@@ -133,7 +127,7 @@ void Newpiler::linear_scan() {
         has_call = true; break;
       }
     
-    set<string> free_regs;
+    std::set<string> free_regs;
     for (auto reg: callee_saved_regs) free_regs.insert(reg);
     for (auto reg: caller_saved_regs) free_regs.insert(reg);
     for (auto reg: param_regs) free_regs.insert(reg);
@@ -145,10 +139,10 @@ void Newpiler::linear_scan() {
     auto& used_regs = func->used_regs;
     int stk_sz = 0;
     // linear scan
-    set<LiveInterval, CmpEnd> active;
+    std::set<LiveInterval, CmpEnd> active;
     for (auto li_i: func->live_intervals_) {
       // expire old intervals ending before li starts
-      set<LiveInterval, CmpEnd> to_expire;
+      std::set<LiveInterval, CmpEnd> to_expire;
       for (auto li_j: active) {
         if (li_j.end_ >= li_i.start_)
           break;

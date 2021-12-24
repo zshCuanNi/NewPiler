@@ -1,9 +1,8 @@
 #include "c_symtab.hpp"
-#include <cassert>
 
 CEntryVarTable::CEntryVarTable(string sysy_id,
-                               vector<int> widths,
-                               vector<int> values,
+                               std::vector<int> widths,
+                               std::vector<int> values,
                                bool is_const,
                                bool is_param,
                                bool is_ptr,
@@ -23,7 +22,7 @@ CSymbolTable::CSymbolTable() {
   for (const string func_name: getter_func)
     register_func(datINT, func_name);
   func_tab_["getarray"]->params_.push_back(
-      NEW(CEntryVarTable)("", vector<int>({0}), vector<int>(),
+      NEW(CEntryVarTable)("", std::vector<int>({0}), std::vector<int>(),
                           false, true, true, true, false)
   );
 
@@ -31,12 +30,12 @@ CSymbolTable::CSymbolTable() {
   for (const string func_name: putter_func) {
     register_func(datVOID, func_name);
     func_tab_[func_name]->params_.push_back(
-        NEW(CEntryVarTable)("", vector<int>(), vector<int>(),
+        NEW(CEntryVarTable)("", std::vector<int>(), std::vector<int>(),
                             false, true, false, false, false)
     );
   }
   func_tab_["putarray"]->params_.push_back(
-      NEW(CEntryVarTable)("", vector<int>({0}), vector<int>(),
+      NEW(CEntryVarTable)("", std::vector<int>({0}), std::vector<int>(),
                           false, true, true, true, false)
   );
 
@@ -44,15 +43,15 @@ CSymbolTable::CSymbolTable() {
   for (const string func_name: time_func) {
     register_func(datVOID, func_name);
     func_tab_[func_name]->params_.push_back(
-        NEW(CEntryVarTable)("", vector<int>(), vector<int>(),
+        NEW(CEntryVarTable)("", std::vector<int>(), std::vector<int>(),
                             false, true, false, false, false)
     );
   }
 }
 
 CEnVTabPtr CSymbolTable::register_var(string sysy_id,
-                                      vector<int> widths,
-                                      vector<int> values,
+                                      std::vector<int> widths,
+                                      std::vector<int> values,
                                       bool is_const,
                                       bool is_param,
                                       bool is_ptr,
@@ -64,14 +63,14 @@ CEnVTabPtr CSymbolTable::register_var(string sysy_id,
 
   if (is_param) {
   // parameter of a function
-    new_var->eeyore_id_ = "p" + to_string(cur_param_cnt_++);
+    new_var->eeyore_id_ = format("p%d", cur_param_cnt_++);
     assert(blk_id_ != GLOBAL_BLOCK);
     func_tab_[cur_func_]->params_.push_back(new_var);
   } else if (is_temp)
   // temp variable, sysy_id has prefix "#t"
     new_var->eeyore_id_ = sysy_id.substr(1);
   else
-    new_var->eeyore_id_ = "T" + to_string(cur_var_cnt_++);
+    new_var->eeyore_id_ = format("T%d", cur_var_cnt_++);
   
   // register new_var as a local variable if it is in a function
   if (blk_id_ != GLOBAL_BLOCK)

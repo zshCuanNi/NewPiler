@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include "c_ast.hpp"
 extern int yylineno;
-extern CBlkPtr C_AST_Root;
+extern CBlkPtr c_ast_root;
 int yyparse();
 int yylex();
 void yyerror(const char *msg, int lineno=yylineno);
@@ -16,12 +16,12 @@ void yyerror(const char *msg, int lineno=yylineno);
     CBlock* block;
     CDeclList* decl_list;
     CVarDecl* var_decl;
-    vector<CVarDecl*>* real_decl_list;
+    std::vector<CVarDecl*>* real_decl_list;
     CFuncDef* func_def;
     CStmt* stmt;
     CExpr* expr;
     CCondExpr* cond;
-    vector<CExpr*>* expr_list;
+    std::vector<CExpr*>* expr_list;
     DataType dat;
 };
 
@@ -47,7 +47,7 @@ void yyerror(const char *msg, int lineno=yylineno);
 %%
 
 Root:
-      CompUnit                  { C_AST_Root = $1; }
+      CompUnit                  { c_ast_root = $1; }
     ;
 CompUnit:
       CompUnit Decl             { $1->add_item($2); $$ = $1; }

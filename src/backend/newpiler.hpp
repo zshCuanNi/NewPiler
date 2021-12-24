@@ -1,7 +1,6 @@
 #ifndef NEWPILER_H
 #define NEWPILER_H
 
-#include "c_ast.hpp"
 #include "e_ast.hpp"
 
 class Newpiler {
@@ -15,20 +14,20 @@ public:
 
   // temp helper memeber vars
   EExprPtrList params_;
-  vector<int> labels_;
+  std::vector<int> labels_;
   // used during tigger generation
   EEnFTabPtr func;
   VarRegMap var2reg;
   VarStackMap var2stack;
   RegStackMap reg2stack;
-  set<string> used_regs;
+  std::set<string> used_regs;
 
   // s0, s1, s2 are reserved for storing temporary values
-  vector<string> callee_saved_regs =
+  std::vector<string> callee_saved_regs =
   {"s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11"};
-  vector<string> caller_saved_regs =
+  std::vector<string> caller_saved_regs =
   {"t0", "t1", "t2", "t3", "t4", "t5", "t6"};
-  vector<string> param_regs =
+  std::vector<string> param_regs =
   {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
 
   Newpiler(FILE* f_out, CodeList eeyore_codes, FILE* f_log = nullptr);
@@ -37,7 +36,7 @@ public:
   void parse_eeyore_line(string code_line, int lineno);
   EExprPtr parse_eeyore_rval(string rval);
   EExprPtr parse_eeyore_expr(string str);
-  EExprPtr parse_eeyore_expr(stringstream& sstr);
+  EExprPtr parse_eeyore_expr(std::stringstream& sstr);
 
   // get CFG and do dataflow analysis
   void gen_control_flow_graph();
@@ -67,8 +66,8 @@ public:
   void linear_scan_debug();
 
   // helper functions
-  void save_regs(vector<string> regs);
-  void restore_regs(vector<string> regs);
+  void save_regs(std::vector<string> regs);
+  void restore_regs(std::vector<string> regs);
   string get_reg(EExprPtr rval, string specify_reg = "", bool is_load = true);
   string get_reg(string var_id, string specify_reg = "", bool is_load = true);
   string get_reg(int number, string specify_reg = "");
@@ -82,15 +81,5 @@ public:
   void gen_slti(string reg1, string reg2, int int12);
   void gen_binop(string bop, string reg1, string reg2, string reg3);
 };
-
-bool start_with(string str, string head);
-bool is_param(string var_id);
-bool is_digit(char c);
-char get_useful_peek(stringstream& sstr);
-int get_unsigned_int(stringstream& sstr);
-string add_suffix(const string& text);
-
-template<typename ... Args>
-string format( const string& format, Args ... args );
 
 #endif

@@ -1,4 +1,3 @@
-#include <cassert>
 #include "newpiler.hpp"
 
 string ENode::debug_print() {
@@ -10,17 +9,16 @@ string ENode::debug_print() {
 }
 
 string EExpr::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = "";
   switch (expr_type_) {
     case eeOP:
       if (rhs_)
-        ret_str = format("%s %s %s", lhs_->debug_print().c_str(), op_.c_str(), rhs_->debug_print().c_str());
+        ret_str = format("%s %s %s", lhs_->debug_print(), op_, rhs_->debug_print());
       else
-        ret_str = format("%s%s", op_.c_str(), lhs_->debug_print().c_str());
+        ret_str = format("%s%s", op_, lhs_->debug_print());
       break;
     case eeARR:
-      ret_str = format("%s[%s]", lhs_->debug_print().c_str(), rhs_->debug_print().c_str());
+      ret_str = format("%s[%s]", lhs_->debug_print(), rhs_->debug_print());
       break;
     default: assert(false);
   }
@@ -28,13 +26,11 @@ string EExpr::debug_print() {
 }
 
 string ESymbol::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   return ret_str.append(id_);
 }
 
 string ENumber::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   return ret_str.append(format("%d", val_));
 }
@@ -47,7 +43,6 @@ string ENumber::debug_print() {
  * Here params may not exist.
  */
 string ECall::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   for (int i = 0; i < (int)params_.size(); i++)
     if (i == 0)
@@ -59,7 +54,6 @@ string ECall::debug_print() {
 }
 
 string EAssign::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   // special case: t = call f_func with params
   if (rhs_->expr_type_ == eeCALL) {
@@ -69,31 +63,28 @@ string EAssign::debug_print() {
     // has params
       string params_str = call_str.substr(0, pos + 1);
       call_str = call_str.substr(pos + 2, call_str.size() - (pos + 2));
-      ret_str = ret_str + params_str + format("\t%s = %s", lhs_->debug_print().c_str(), call_str.c_str());
+      ret_str = ret_str + params_str + format("\t%s = %s", lhs_->debug_print(), call_str);
     } else {
     // has no params
       call_str = call_str.substr(1, call_str.size() - 1);
-      ret_str.append(format("%s = %s", lhs_->debug_print().c_str(), call_str.c_str()));
+      ret_str.append(format("%s = %s", lhs_->debug_print(), call_str));
     }
   } else
-    ret_str.append(format("%s = %s", lhs_->debug_print().c_str(), rhs_->debug_print().c_str()));
+    ret_str.append(format("%s = %s", lhs_->debug_print(), rhs_->debug_print()));
   return ret_str;
 }
 
 string EReturn::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   return ret_str.append(ret_val_? "return " + ret_val_->debug_print(): "return");
 }
 
 string EIf::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
-  return ret_str.append(format("if %s goto l%d", cond_->debug_print().c_str(), where_));
+  return ret_str.append(format("if %s goto l%d", cond_->debug_print(), where_));
 }
 
 string EGoto::debug_print() {
-  // puts(typeid(*this).name());
   string ret_str = ENode::debug_print();
   return ret_str.append(format("goto l%d", where_));
 }
@@ -181,13 +172,13 @@ void Newpiler::liveness_debug() {
       if (!start_with(stmt_str, "l")) stmt_str = "\t" + stmt_str;
       string info_str = format("\t\t\t\tstmt-%d: ", stmt->stmtno_);
       info_str.append("\tdef: ");
-      for (auto var: stmt->def_) info_str.append(format("%s,", var.c_str()));
+      for (auto var: stmt->def_) info_str.append(format("%s,", var));
       info_str.append("\tuse: ");
-      for (auto var: stmt->use_) info_str.append(format("%s,", var.c_str()));
+      for (auto var: stmt->use_) info_str.append(format("%s,", var));
       info_str.append("\tin: ");
-      for (auto var: stmt->live_in_) info_str.append(format("%s,", var.c_str()));
+      for (auto var: stmt->live_in_) info_str.append(format("%s,", var));
       info_str.append("\tout: ");
-      for (auto var: stmt->live_out_) info_str.append(format("%s,", var.c_str()));
+      for (auto var: stmt->live_out_) info_str.append(format("%s,", var));
       fprintf(f_out, "%s\n", stmt_str.append(info_str).c_str());
     }
     fprintf(f_out, "FUNCTION %s END\n", func->func_id_.c_str());

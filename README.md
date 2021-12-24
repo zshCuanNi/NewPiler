@@ -18,7 +18,7 @@ Example SysY programs can be found [here](https://github.com/pku-minic/open-test
 
 <hr>
 
-## Breif Introduction
+## Brief Introduction
 
 Course project of PKU Compiler Course.
 
