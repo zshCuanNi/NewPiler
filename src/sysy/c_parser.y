@@ -6,7 +6,7 @@ extern int yylineno;
 extern CBlkPtr c_ast_root;
 int yyparse();
 int yylex();
-void yyerror(const char *msg, int lineno=yylineno);
+void yyerror(const char *msg, int lineno = yylineno);
 %}
 
 %union {

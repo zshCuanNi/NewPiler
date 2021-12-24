@@ -28,13 +28,11 @@ void Newpiler::cal_live_intervals() {
       }
       func->insert_live_interval(LiveInterval(var, start, end));
     }
-    // params
+    // params, always start from -1
     for (int i = 0; i < func->param_num_; i++) {
       string var = format("p%d", i);
-      int start = -2, end = -2;
+      int start = -1, end = -2;
       for (auto stmt: func->stmts_) {
-        if (start == -2 && stmt->live_out_.count(var))
-          start = stmt->stmtno_;
         if (stmt->live_in_.count(var))
           end = stmt->stmtno_;
       }
@@ -144,7 +142,7 @@ void Newpiler::linear_scan() {
       // expire old intervals ending before li starts
       std::set<LiveInterval, CmpEnd> to_expire;
       for (auto li_j: active) {
-        if (li_j.end_ >= li_i.start_)
+        if (li_j.end_ > li_i.start_)
           break;
         to_expire.insert(li_j);
         free_regs.insert(var2reg[li_j.var_id_]);

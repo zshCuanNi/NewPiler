@@ -127,7 +127,7 @@ void Newpiler::eeyore_ast_debug() {
   }
 }
 
-/* Print eeyore codes after basic block division.
+/* Print eeyore codes after basic block partition.
  * have cleared dead codes and redundant labels
  */
 void Newpiler::eeyore_block_debug() {
