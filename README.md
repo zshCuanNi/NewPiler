@@ -1,4 +1,4 @@
-# newpiler
+# NewPiler
 
 Compiler for translating SysY (a simple C-like language) to RISC-Ⅴ, using Flex and Bison
 
